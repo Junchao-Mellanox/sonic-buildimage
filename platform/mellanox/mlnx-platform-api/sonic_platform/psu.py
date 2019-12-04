@@ -287,3 +287,21 @@ class Psu(PsuBase):
             raise RuntimeError("Failed to read led status for psu due to {}".format(repr(e)))
 
         return self.STATUS_LED_COLOR_OFF
+
+
+    def _get_power_available_status(self):
+        """
+        Gets the power available status
+
+        Returns:
+            True if power is present and power on. 
+            False and "power not present" if power is not present.
+            False and "power off" if power is present but not power on.
+        """
+        if not self.get_presence():
+            return False, "power not present"
+        elif not self.get_powergood_status():
+            return False, "power off"
+        else:
+            return True, ""
+
