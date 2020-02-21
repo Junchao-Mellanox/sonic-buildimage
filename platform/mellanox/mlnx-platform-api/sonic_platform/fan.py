@@ -107,15 +107,15 @@ class Fan(FanBase):
         """
         status = 0
         if self.is_psu_fan:
-            status = 1
+            status = 0
         else:
             try:
                 with open(os.path.join(FAN_PATH, self.fan_status_path), 'r') as fault_status:
                     status = int(fault_status.read())
             except (ValueError, IOError):
-                status = 0
+                status = 1
 
-        return status == 1
+        return status == 0
 
 
     def get_presence(self):

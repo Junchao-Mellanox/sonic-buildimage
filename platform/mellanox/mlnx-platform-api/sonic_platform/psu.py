@@ -100,16 +100,16 @@ class Psu(PsuBase):
             self.psu_presence = psu_presence
 
         fan = Fan(sku, psu_index, psu_index, True)
-        if fan.get_presence():
-            self._fan_list.append(fan)
-
-    def get_name(self):
-        return self._name
+        self._fan_list.append(fan)
 
         self.psu_green_led_path = "led_psu_green"
         self.psu_red_led_path = "led_psu_red"
         self.psu_orange_led_path = "led_psu_orange"
         self.psu_led_cap_path = "led_psu_capability"
+
+
+    def get_name(self):
+        return self._name
 
 
     def _read_generic_file(self, filename, len):

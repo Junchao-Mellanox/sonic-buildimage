@@ -350,7 +350,7 @@ class Thermal(ThermalBase):
                 hint = self.dependent_hint
             else:
                 hint = "unknown reason"
-            logger.log_info("get_temperature for {} failed due to {}".format(self.name, hint))
+            logger.log_debug("get_temperature for {} failed due to {}".format(self.name, hint))
             return None
         value_str = self._read_generic_file(self.temperature, 0)
         if value_str is None:
@@ -371,6 +371,13 @@ class Thermal(ThermalBase):
         """
         if self.high_threshold is None:
             return None
+        if self.dependency and not self.dependency():
+            if self.dependent_hint:
+                hint = self.dependent_hint
+            else:
+                hint = "unknown reason"
+            logger.log_debug("get_high_threshold for {} failed due to {}".format(self.name, hint))
+            return None
         value_str = self._read_generic_file(self.high_threshold, 0)
         if value_str is None:
             return None
@@ -389,6 +396,13 @@ class Thermal(ThermalBase):
             up to nearest thousandth of one degree Celsius, e.g. 30.125
         """
         if self.high_critical_threshold is None:
+            return None
+        if self.dependency and not self.dependency():
+            if self.dependent_hint:
+                hint = self.dependent_hint
+            else:
+                hint = "unknown reason"
+            logger.log_debug("get_high_critical_threshold for {} failed due to {}".format(self.name, hint))
             return None
         value_str = self._read_generic_file(self.high_critical_threshold, 0)
         if value_str is None:
