@@ -264,7 +264,7 @@ def initialize_thermals(sku, thermal_list, psu_list):
             else:
                 if category == THERMAL_DEV_CATEGORY_PSU:
                     for index in range(count):
-                        thermal = Thermal(category, start + index, True, psu_list[index]._get_power_available_status)
+                        thermal = Thermal(category, start + index, True, psu_list[index].get_power_available_status)
                         thermal_list.append(thermal)
                 else:
                     for index in range(count):

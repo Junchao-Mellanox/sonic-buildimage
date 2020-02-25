@@ -289,7 +289,7 @@ class Psu(PsuBase):
         return self.STATUS_LED_COLOR_OFF
 
 
-    def _get_power_available_status(self):
+    def get_power_available_status(self):
         """
         Gets the power available status
 
