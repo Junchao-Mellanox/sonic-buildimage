@@ -307,4 +307,12 @@ def test_load_empty_action():
         with pytest.raises(Exception):
             policy.load_from_json(json_obj)
 
+def test_load_policy_with_same_conditions():
+    from sonic_platform_base.sonic_thermal_control.thermal_manager_base import ThermalManagerBase
+    class MockThermalManager(ThermalManagerBase):
+        pass
+
+    with pytest.raises(Exception):
+        MockThermalManager.load(os.path.join(test_path, 'policy_with_same_conditions.json'))
+    
 
