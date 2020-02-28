@@ -295,13 +295,13 @@ class Psu(PsuBase):
 
         Returns:
             True if power is present and power on. 
-            False and "power not present" if power is not present.
-            False and "power off" if power is present but not power on.
+            False and "absence of PSU" if power is not present.
+            False and "absence of power" if power is present but not power on.
         """
         if not self.get_presence():
-            return False, "power not present"
+            return False, "absence of PSU"
         elif not self.get_powergood_status():
-            return False, "power off"
+            return False, "absence of power"
         else:
             return True, ""
 
