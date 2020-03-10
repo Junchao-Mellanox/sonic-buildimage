@@ -25,17 +25,22 @@ LED_PATH = "/var/run/hw-management/led/"
 # fan_dir isn't supported on Spectrum 1. It is supported on Spectrum 2 and later switches
 FAN_DIR = "/var/run/hw-management/system/fan_dir"
 
+# SKUs with unplugable FANs:
+# 1. don't have fanX_status and should be treated as always present
+hwsku_dict_with_unplugable_fan = ['ACS-MSN2010', 'ACS-MSN2100']
+
 class Fan(FanBase):
     """Platform-specific Fan class"""
 
     STATUS_LED_COLOR_ORANGE = "orange"
 
-    def __init__(self, has_fan_dir, fan_index, drawer_index = 1, psu_fan = False):
+    def __init__(self, has_fan_dir, fan_index, drawer_index = 1, psu_fan = False, sku = None):
         # API index is starting from 0, Mellanox platform index is starting from 1
         self.index = fan_index + 1
         self.drawer_index = drawer_index + 1
 
         self.is_psu_fan = psu_fan
+        self.always_presence = False if sku not in hwsku_dict_with_unplugable_fan else True
 
         self.fan_min_speed_path = "fan{}_min".format(self.index)
         if not self.is_psu_fan:
@@ -132,11 +137,14 @@ class Fan(FanBase):
             else:
                 status = 0
         else:
-            try:
-                with open(os.path.join(FAN_PATH, self.fan_presence_path), 'r') as presence_status:
-                    status = int(presence_status.read())
-            except (ValueError, IOError):
-                status = 0
+            if self.always_presence:
+                status = 1
+            else:
+                try:
+                    with open(os.path.join(FAN_PATH, self.fan_presence_path), 'r') as presence_status:
+                        status = int(presence_status.read())
+                except (ValueError, IOError):
+                    status = 0
 
         return status == 1
 
