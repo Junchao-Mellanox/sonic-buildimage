@@ -85,7 +85,7 @@ class Fan(FanBase):
                 1 stands for forward, in other words intake
                 0 stands for reverse, in other words exhaust
         """
-        if not self.fan_dir or self.is_psu_fan:
+        if not self.fan_dir or self.is_psu_fan or not self.get_presence():
             return self.FAN_DIRECTION_NOT_APPLICABLE
 
         try:
