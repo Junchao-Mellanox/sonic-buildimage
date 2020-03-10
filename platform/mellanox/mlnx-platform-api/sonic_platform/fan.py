@@ -91,7 +91,7 @@ class Fan(FanBase):
         try:
             with open(os.path.join(self.fan_dir), 'r') as fan_dir:
                 fan_dir_bits = int(fan_dir.read())
-                fan_mask = 1 << self.index - 1
+                fan_mask = 1 << self.drawer_index - 1
                 if fan_dir_bits & fan_mask:
                     return self.FAN_DIRECTION_INTAKE
                 else:
