@@ -549,8 +549,8 @@ class Thermal(ThermalBase):
         port_ambient_path = join(HW_MGMT_THERMAL_ROOT, THERMAL_DEV_PORT_AMBIENT)
 
         # if there is any exception, let it raise
-        fan_ambient_temp = int(cls._read_generic_file(fan_ambient_path))
-        port_ambient_temp = int(cls._read_generic_file(port_ambient_path))
+        fan_ambient_temp = int(cls._read_generic_file(fan_ambient_path, 0))
+        port_ambient_temp = int(cls._read_generic_file(port_ambient_path, 0))
         if fan_ambient_temp > port_ambient_temp:
             return 'p2c', fan_ambient_temp
         elif fan_ambient_temp < port_ambient_temp:

@@ -40,7 +40,12 @@ class ThermalManager(ThermalManagerBase):
 
     @classmethod
     def _add_private_thermal_policy(cls):
-        policy = ThermalPolicy()
-        policy.conditions[MinCoolingLevelChangeCondition] = MinCoolingLevelChangeCondition()
-        policy.actions[ChangeMinCoolingLevelAction] = ChangeMinCoolingLevelAction()
-        cls._policy_dict['DynamicMinCoolingLevelPolicy'] = policy
+        dynamic_min_speed_policy = ThermalPolicy()
+        dynamic_min_speed_policy.conditions[MinCoolingLevelChangeCondition] = MinCoolingLevelChangeCondition()
+        dynamic_min_speed_policy.actions[ChangeMinCoolingLevelAction] = ChangeMinCoolingLevelAction()
+        cls._policy_dict['DynamicMinCoolingLevelPolicy'] = dynamic_min_speed_policy
+
+        update_psu_fan_speed_policy = ThermalPolicy()
+        update_psu_fan_speed_policy.conditions[CoolingLevelChangeCondition] = CoolingLevelChangeCondition()
+        update_psu_fan_speed_policy.actions[UpdatePsuFanSpeedAction] = UpdatePsuFanSpeedAction()
+        cls._policy_dict['UpdatePsuFanSpeedPolicy'] = update_psu_fan_speed_policy

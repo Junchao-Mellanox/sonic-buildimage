@@ -146,8 +146,8 @@ class ChangeMinCoolingLevelAction(ThermalPolicyActionBase):
 
             for key, cooling_level in minimum_table.items():
                 temp_range = key.split(':')
-                temp_min = int(temp_range[0]) * 1000
-                temp_max = int(temp_range[1]) * 1000
+                temp_min = int(temp_range[0])
+                temp_max = int(temp_range[1])
                 if temp_min <= temperature <= temp_max:
                     Fan.min_cooling_level = cooling_level - 10
                     break
@@ -155,3 +155,15 @@ class ChangeMinCoolingLevelAction(ThermalPolicyActionBase):
         current_cooling_level = Fan.get_cooling_level()
         if current_cooling_level < Fan.min_cooling_level:
             Fan.set_cooling_level(Fan.min_cooling_level)
+
+
+class UpdatePsuFanSpeedAction(ThermalPolicyActionBase):
+    def execute(self, thermal_info_dict):
+        from .thermal_conditions import CoolingLevelChangeCondition
+        from .thermal_infos import ChassisInfo
+
+        chassis = thermal_info_dict[ChassisInfo.INFO_NAME].get_chassis()
+        cooling_level = CoolingLevelChangeCondition.cooling_level
+        for psu in chassis.get_all_psus():
+            for psu_fan in psu.get_all_fans():
+                psu_fan.set_speed(cooling_level * 10)

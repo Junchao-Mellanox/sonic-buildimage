@@ -9,6 +9,7 @@
 #############################################################################
 
 import os.path
+import subprocess
 
 try:
     from sonic_platform_base.fan_base import FanBase
@@ -22,6 +23,7 @@ PWM_MAX = 255
 
 FAN_PATH = "/var/run/hw-management/thermal/"
 LED_PATH = "/var/run/hw-management/led/"
+CONFIG_PATH = "/var/run/hw-management/config"
 # fan_dir isn't supported on Spectrum 1. It is supported on Spectrum 2 and later switches
 FAN_DIR = "/var/run/hw-management/system/fan_dir"
 COOLING_STATE_PATH = "/var/run/hw-management/thermal/cooling_cur_state"
@@ -39,6 +41,9 @@ class Fan(FanBase):
 
     STATUS_LED_COLOR_ORANGE = "orange"
     min_cooling_level = 2
+    # PSU fan speed vector
+    PSU_FAN_SPEED = ['0x3c', '0x3c', '0x3c', '0x3c', '0x3c',
+                     '0x3c', '0x3c', '0x46', '0x50', '0x5a', '0x64']
 
     def __init__(self, has_fan_dir, fan_index, drawer_index = 1, psu_fan = False, sku = None):
         # API index is starting from 0, Mellanox platform index is starting from 1
@@ -60,6 +65,10 @@ class Fan(FanBase):
             self.fan_presence_path = "psu{}_fan1_speed_get".format(self.index)
             self._name = 'psu_{}_fan_{}'.format(self.index, 1)
             self.fan_max_speed_path = None
+            self.psu_i2c_bus_path = join(CONFIG_PATH, 'psu{0}_i2c_bus'.format(self.index))
+            self.psu_i2c_addr_path = join(CONFIG_PATH, 'psu{0}_i2c_addr'.format(self.index))
+            self.psu_i2c_command_path = join(CONFIG_PATH, 'fan_command')
+
         self.fan_status_path = "fan{}_fault".format(self.index)
         self.fan_green_led_path = "led_fan{}_green".format(self.drawer_index)
         self.fan_red_led_path = "led_fan{}_red".format(self.drawer_index)
@@ -239,9 +248,19 @@ class Fan(FanBase):
         status = True
 
         if self.is_psu_fan:
-            #PSU fan speed is not setable.
-            return False
-        
+            try:
+                with open(self.psu_i2c_bus_path, 'r') as f:
+                    bus = f.read().strip()
+                with open(self.psu_i2c_addr_path, 'r') as f:
+                    addr = f.read().strip()
+                with open(self.psu_i2c_command_path, 'r') as f:
+                    command = f.read().strip()
+                speed = Fan.PSU_FAN_SPEED[int(speed / 10)]
+                subprocess.call("i2cset -f -y {0} {1} {2} {3} wp".format(bus, addr, command, speed), shell = True)
+                return True
+            except Exception as e:
+                return False
+
         try:
             cooling_level = int(speed / 10)
             if cooling_level < self.min_cooling_level:

@@ -486,7 +486,7 @@ def test_dynamic_minimum_policy(thermal_manager):
     assert condition.is_match(None)
     assert MinCoolingLevelChangeCondition.trust_state == 'trust'
     assert MinCoolingLevelChangeCondition.air_flow_dir == 'p2c'
-    assert MinCoolingLevelChangeCondition.temperature == 35000
+    assert MinCoolingLevelChangeCondition.temperature == 35
     assert not condition.is_match(None)
 
     Thermal.check_module_temperature_trustable = MagicMock(return_value='untrust')
@@ -499,7 +499,7 @@ def test_dynamic_minimum_policy(thermal_manager):
 
     Thermal.get_air_flow_direction = MagicMock(return_value=('c2p', 25000))
     assert condition.is_match(None)
-    assert MinCoolingLevelChangeCondition.temperature == 25000
+    assert MinCoolingLevelChangeCondition.temperature == 25
 
     chassis = MockChassis()
     chassis.sku_name = 'invalid'

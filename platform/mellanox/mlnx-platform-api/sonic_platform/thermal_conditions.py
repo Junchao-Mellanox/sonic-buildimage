@@ -86,6 +86,7 @@ class MinCoolingLevelChangeCondition(ThermalPolicyConditionBase):
 
         trust_state = Thermal.check_module_temperature_trustable()
         air_flow_dir, temperature = Thermal.get_air_flow_direction()
+        temperature = temperature / 1000
 
         change_cooling_level = False
         if trust_state != MinCoolingLevelChangeCondition.trust_state:
@@ -101,3 +102,16 @@ class MinCoolingLevelChangeCondition(ThermalPolicyConditionBase):
             change_cooling_level = True
 
         return change_cooling_level
+
+
+class CoolingLevelChangeCondition(ThermalPolicyConditionBase):
+    cooling_level = None
+
+    def is_match(self, thermal_info_dict):
+        from .fan import Fan
+        current_cooling_level = Fan.get_cooling_level()
+        if current_cooling_level != cooling_level:
+            CoolingLevelChangeCondition.cooling_level = current_cooling_level
+            return True
+        else:
+            return False
