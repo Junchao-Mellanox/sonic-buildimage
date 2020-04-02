@@ -110,7 +110,7 @@ class CoolingLevelChangeCondition(ThermalPolicyConditionBase):
     def is_match(self, thermal_info_dict):
         from .fan import Fan
         current_cooling_level = Fan.get_cooling_level()
-        if current_cooling_level != cooling_level:
+        if current_cooling_level != CoolingLevelChangeCondition.cooling_level:
             CoolingLevelChangeCondition.cooling_level = current_cooling_level
             return True
         else:

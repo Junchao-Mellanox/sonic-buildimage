@@ -65,9 +65,9 @@ class Fan(FanBase):
             self.fan_presence_path = "psu{}_fan1_speed_get".format(self.index)
             self._name = 'psu_{}_fan_{}'.format(self.index, 1)
             self.fan_max_speed_path = None
-            self.psu_i2c_bus_path = join(CONFIG_PATH, 'psu{0}_i2c_bus'.format(self.index))
-            self.psu_i2c_addr_path = join(CONFIG_PATH, 'psu{0}_i2c_addr'.format(self.index))
-            self.psu_i2c_command_path = join(CONFIG_PATH, 'fan_command')
+            self.psu_i2c_bus_path = os.path.join(CONFIG_PATH, 'psu{0}_i2c_bus'.format(self.index))
+            self.psu_i2c_addr_path = os.path.join(CONFIG_PATH, 'psu{0}_i2c_addr'.format(self.index))
+            self.psu_i2c_command_path = os.path.join(CONFIG_PATH, 'fan_command')
 
         self.fan_status_path = "fan{}_fault".format(self.index)
         self.fan_green_led_path = "led_fan{}_green".format(self.drawer_index)
