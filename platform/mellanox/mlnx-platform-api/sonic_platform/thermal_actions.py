@@ -1,5 +1,6 @@
 from sonic_platform_base.sonic_thermal_control.thermal_action_base import ThermalPolicyActionBase
 from sonic_platform_base.sonic_thermal_control.thermal_json_object import thermal_json_object
+from .thermal import logger
 
 
 class SetFanSpeedAction(ThermalPolicyActionBase):
@@ -52,6 +53,7 @@ class SetAllFanSpeedAction(SetFanSpeedAction):
             fan_info_obj = thermal_info_dict[FanInfo.INFO_NAME]
             for fan in fan_info_obj.get_presence_fans():
                 fan.set_speed(self.speed)
+        logger.log_info('Set all system FAN speed to {}'.format(self.speed))
 
 
 @thermal_json_object('fan.all.check_and_set_speed')
@@ -126,6 +128,8 @@ class ControlThermalAlgoAction(ThermalPolicyActionBase):
                         break
                     fan.set_speed(Fan.min_cooling_level * 10)
 
+        logger.log_info('Changed thermal algorithm status to {}'.format(self.status))
+
 
 class ChangeMinCoolingLevelAction(ThermalPolicyActionBase):
     UNKNOWN_SKU_COOLING_LEVEL = 6
@@ -156,6 +160,8 @@ class ChangeMinCoolingLevelAction(ThermalPolicyActionBase):
         if current_cooling_level < Fan.min_cooling_level:
             Fan.set_cooling_level(Fan.min_cooling_level)
 
+        logger.log_info('Changed minimum cooling level to {}'.format(Fan.min_cooling_level))
+
 
 class UpdatePsuFanSpeedAction(ThermalPolicyActionBase):
     def execute(self, thermal_info_dict):
@@ -167,3 +173,5 @@ class UpdatePsuFanSpeedAction(ThermalPolicyActionBase):
         for psu in chassis.get_all_psus():
             for psu_fan in psu.get_all_fans():
                 psu_fan.set_speed(cooling_level * 10)
+
+        logger.log_info('Updated PSU FAN speed to {}%'.format(cooling_level * 10))
