@@ -55,6 +55,20 @@ class SetAllFanSpeedAction(SetFanSpeedAction):
                 fan.set_speed(self.speed)
         logger.log_info('Set all system FAN speed to {}'.format(self.speed))
 
+        SetAllFanSpeedAction.set_psu_fan_speed(thermal_info_dict, self.speed)
+
+    @classmethod
+    def set_psu_fan_speed(cls, thermal_info_dict, speed):
+        from .thermal_infos import ChassisInfo
+        if ChassisInfo.INFO_NAME in thermal_info_dict and isinstance(thermal_info_dict[ChassisInfo.INFO_NAME], ChassisInfo):
+            chassis = thermal_info_dict[ChassisInfo.INFO_NAME].get_chassis()
+            for psu in chassis.get_all_psus():
+                for psu_fan in psu.get_all_fans():
+                    psu_fan.set_speed(speed)
+
+            logger.log_info('Updated PSU FAN speed to {}%'.format(speed))
+
+
 
 @thermal_json_object('fan.all.check_and_set_speed')
 class CheckAndSetAllFanSpeedAction(SetAllFanSpeedAction):
@@ -123,10 +137,16 @@ class ControlThermalAlgoAction(ThermalPolicyActionBase):
             # save power
             if Thermal.check_thermal_zone_temperature():
                 fan_info_obj = thermal_info_dict[FanInfo.INFO_NAME]
+                update_psu_fan_speed = False
+                speed = Fan.min_cooling_level * 10
                 for fan in fan_info_obj.get_presence_fans():
                     if fan.get_target_speed() != 100:
                         break
-                    fan.set_speed(Fan.min_cooling_level * 10)
+                    update_psu_fan_speed = True
+                    fan.set_speed(speed)
+
+                if update_psu_fan_speed:
+                    SetAllFanSpeedAction.set_psu_fan_speed(thermal_info_dict, speed)
 
         logger.log_info('Changed thermal algorithm status to {}'.format(self.status))
 
@@ -159,6 +179,7 @@ class ChangeMinCoolingLevelAction(ThermalPolicyActionBase):
         current_cooling_level = Fan.get_cooling_level()
         if current_cooling_level < Fan.min_cooling_level:
             Fan.set_cooling_level(Fan.min_cooling_level)
+            SetAllFanSpeedAction.set_psu_fan_speed(thermal_info_dict, Fan.min_cooling_level * 10)
 
         logger.log_info('Changed minimum cooling level to {}'.format(Fan.min_cooling_level))
 
@@ -166,12 +187,4 @@ class ChangeMinCoolingLevelAction(ThermalPolicyActionBase):
 class UpdatePsuFanSpeedAction(ThermalPolicyActionBase):
     def execute(self, thermal_info_dict):
         from .thermal_conditions import CoolingLevelChangeCondition
-        from .thermal_infos import ChassisInfo
-
-        chassis = thermal_info_dict[ChassisInfo.INFO_NAME].get_chassis()
-        cooling_level = CoolingLevelChangeCondition.cooling_level
-        for psu in chassis.get_all_psus():
-            for psu_fan in psu.get_all_fans():
-                psu_fan.set_speed(cooling_level * 10)
-
-        logger.log_info('Updated PSU FAN speed to {}%'.format(cooling_level * 10))
+        SetAllFanSpeedAction.set_psu_fan_speed(thermal_info_dict, CoolingLevelChangeCondition.cooling_level * 10)
