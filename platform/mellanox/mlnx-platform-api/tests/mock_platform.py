@@ -28,6 +28,9 @@ class MockPsu:
     def get_powergood_status(self):
         return self.powergood
 
+    def get_all_fans(self):
+        return []
+
 
 class MockChassis:
     def __init__(self):
