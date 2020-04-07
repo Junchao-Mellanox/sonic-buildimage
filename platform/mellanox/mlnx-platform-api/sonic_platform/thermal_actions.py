@@ -117,7 +117,7 @@ class ControlThermalAlgoAction(ThermalPolicyActionBase):
         Thermal.set_thermal_algorithm_status(self.status, False)
         if self.status:
             # Check thermal zone temperature, if all thermal zone temperature
-            # return to normal and FAN speed is still 100%, set it to 60% to
+            # back to normal and FAN speed is still 100%, set it to minimum allowed speed to
             # save power
             if Thermal.check_thermal_zone_temperature():
                 fan_info_obj = thermal_info_dict[FanInfo.INFO_NAME]

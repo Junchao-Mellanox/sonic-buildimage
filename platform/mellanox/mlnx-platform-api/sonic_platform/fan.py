@@ -30,9 +30,6 @@ COOLING_STATE_PATH = "/var/run/hw-management/thermal/cooling_cur_state"
 # 1. don't have fanX_status and should be treated as always present
 hwsku_dict_with_unplugable_fan = ['ACS-MSN2010', 'ACS-MSN2100']
 
-# SKUs with unplugable FANs:
-# 1. don't have fanX_status and should be treated as always present
-hwsku_dict_with_unplugable_fan = ['ACS-MSN2010', 'ACS-MSN2100']
 
 class Fan(FanBase):
     """Platform-specific Fan class"""
@@ -381,7 +378,7 @@ class Fan(FanBase):
             with open(COOLING_STATE_PATH, 'w') as cooling_state:
                 cooling_state.write(str(level + 10))
 
-            # make cooling state diplay correct value
+            # make cooling state display correct value
             with open(COOLING_STATE_PATH, 'w') as cooling_state:
                 cooling_state.write(str(level))
         except (ValueError, IOError) as e:
