@@ -248,6 +248,7 @@ class Fan(FanBase):
         status = True
 
         if self.is_psu_fan:
+            from .thermal import logger
             try:
                 with open(self.psu_i2c_bus_path, 'r') as f:
                     bus = f.read().strip()
@@ -256,9 +257,14 @@ class Fan(FanBase):
                 with open(self.psu_i2c_command_path, 'r') as f:
                     command = f.read().strip()
                 speed = Fan.PSU_FAN_SPEED[int(speed / 10)]
-                subprocess.call("i2cset -f -y {0} {1} {2} {3} wp".format(bus, addr, command, speed), shell = True)
+                command = "i2cset -f -y {0} {1} {2} {3} wp".format(bus, addr, command, speed)
+                res = subprocess.check_call(command, shell = True)
                 return True
+            except subprocess.CalledProcessError as ce:
+                logger.log_error('Failed to call command {}, return code={}, command output={}'.format(ce.cmd, ce.returncode, ce.output))
+                return False
             except Exception as e:
+                logger.log_error('Failed to set PSU FAN speed - {}'.format(e))
                 return False
 
         try:
