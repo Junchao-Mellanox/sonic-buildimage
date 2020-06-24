@@ -43,42 +43,50 @@ def db_connect(db_name):
 #
 
 class Logger(object):
-    def __init__(self, syslog_identifier = None):
+
+    priority_string_dict = {
+        'ERROR': syslog.LOG_ERR,
+        'WARN': syslog.LOG_WARNING,
+        'NOTICE': syslog.LOG_NOTICE,
+        'INFO': syslog.LOG_INFO,
+        'DEBUG': syslog.LOG_DEBUG,
+    }
+
+    def __init__(self, syslog_identifier = None, log_level = 'NOTICE'):
         self.syslog = syslog
         if syslog_identifier is None:
             self.syslog.openlog()
         else:
             self.syslog.openlog(ident=syslog_identifier, logoption=self.syslog.LOG_NDELAY, facility=self.syslog.LOG_DAEMON)
 
+        self.set_level(log_level)
+
     def __del__(self):
         self.syslog.closelog()
 
-    def log_error(self, msg, also_print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_ERR, msg)
+    def set_level(self, log_level):
+        self.log_level = Logger.priority_string_dict.get(log_level, syslog.LOG_NOTICE)
 
-        if also_print_to_console:
-            print msg
+    def log_error(self, msg, also_print_to_console=False):
+        self.log(msg, also_print_to_console, syslog.LOG_ERR)
 
     def log_warning(self, msg, also_print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_WARNING, msg)
-
-        if also_print_to_console:
-            print msg
+        self.log(msg, also_print_to_console, syslog.LOG_WARNING)
 
     def log_notice(self, msg, also_print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_NOTICE, msg)
-
-        if also_print_to_console:
-            print msg
+        self.log(msg, also_print_to_console, syslog.LOG_NOTICE)
 
     def log_info(self, msg, also_print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_INFO, msg)
-
-        if also_print_to_console:
-            print msg
+        self.log(msg, also_print_to_console, syslog.LOG_INFO)
 
     def log_debug(self, msg, also_print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_DEBUG, msg)
+        self.log(msg, also_print_to_console, syslog.LOG_DEBUG)
+
+    def log(self, msg, also_print_to_console, log_level):
+        if self.log_level < log_level:
+            return
+
+        self.syslog.syslog(log_level, msg)
 
         if also_print_to_console:
             print msg
