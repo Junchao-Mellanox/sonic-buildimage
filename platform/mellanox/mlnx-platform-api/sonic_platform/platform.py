@@ -42,7 +42,7 @@ class Platform(PlatformBase):
             if result != '':
                 is_host = True
 
-        except OSError, e:
+        except OSError as e:
             pass
 
         return is_host

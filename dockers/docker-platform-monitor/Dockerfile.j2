@@ -68,6 +68,7 @@ RUN apt-get purge -y           \
 
 COPY ["docker_init.sh", "lm-sensors.sh", "start.sh", "/usr/bin/"]
 COPY ["docker-pmon.supervisord.conf.j2", "/usr/share/sonic/templates/"]
+COPY ["docker-pmon.supervisord.conf.python3.j2", "/usr/share/sonic/templates/"]
 COPY ["ssd_tools/*", "/usr/bin/"]
 COPY ["files/supervisor-proc-exit-listener", "/usr/bin"]
 COPY ["critical_processes", "/etc/supervisor"]

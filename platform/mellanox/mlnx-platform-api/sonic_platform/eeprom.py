@@ -11,7 +11,7 @@ import exceptions
 import os
 import sys
 import re
-from cStringIO import StringIO
+from io import StringIO
 
 try:
     from sonic_platform_base.sonic_eeprom import eeprom_tlvinfo

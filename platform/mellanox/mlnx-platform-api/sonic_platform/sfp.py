@@ -344,7 +344,7 @@ class SFP(SfpBase):
             if result != '':
                 presence = True
 
-        except OSError, e:
+        except OSError as e:
             raise OSError("Cannot detect sfp")
 
         return presence

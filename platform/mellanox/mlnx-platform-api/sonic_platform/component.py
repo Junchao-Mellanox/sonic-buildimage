@@ -5,7 +5,7 @@
 #
 # implementation of new platform api
 #############################################################################
-from __future__ import print_function
+
 
 
 try:
@@ -15,7 +15,7 @@ try:
     import glob
     import tempfile
     import subprocess
-    import ConfigParser
+    import configparser
 
     from sonic_platform_base.component_base import ComponentBase
 except ImportError as e:
@@ -62,7 +62,7 @@ class MPFAManager(object):
         if not os.path.isfile(metadata_path):
             raise RuntimeError("MPFA metadata doesn't exist: path={}".format(metadata_path))
 
-        cp = ConfigParser.ConfigParser()
+        cp = configparser.ConfigParser()
         with io.open(metadata_path, 'r') as metadata_ini:
             cp.readfp(metadata_ini)
 
@@ -721,7 +721,7 @@ class ComponentCPLD(Component):
         cpld_number = cls._read_generic_file(cls.CPLD_NUMBER_FILE, cls.CPLD_NUMBER_MAX_LENGTH)
         cpld_number = cpld_number.rstrip('\n')
 
-        for cpld_idx in xrange(1, int(cpld_number) + 1):
+        for cpld_idx in range(1, int(cpld_number) + 1):
             component_list.append(cls(cpld_idx))
 
         return component_list

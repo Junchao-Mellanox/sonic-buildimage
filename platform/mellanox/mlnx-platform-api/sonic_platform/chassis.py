@@ -145,7 +145,7 @@ class Chassis(ChassisBase):
 
 
     def initialize_eeprom(self):
-        from eeprom import Eeprom
+        from .eeprom import Eeprom
         # Initialize EEPROM
         self._eeprom = Eeprom()
         # Get chassis name and model from eeprom
@@ -384,11 +384,11 @@ class Chassis(ChassisBase):
         if not self.reboot_cause_initialized:
             self.initialize_reboot_cause()
 
-        for reset_file, reset_cause in self.reboot_major_cause_dict.iteritems():
+        for reset_file, reset_cause in self.reboot_major_cause_dict.items():
             if self._verify_reboot_cause(reset_file):
                 return reset_cause, ''
 
-        for reset_file, reset_cause in self.reboot_minor_cause_dict.iteritems():
+        for reset_file, reset_cause in self.reboot_minor_cause_dict.items():
             if self._verify_reboot_cause(reset_file):
                 return self.REBOOT_CAUSE_HARDWARE_OTHER, reset_cause
 
@@ -409,7 +409,7 @@ class Chassis(ChassisBase):
         """
         for s in self._sfp_list:
             try:
-                print "index {} tx disable {} dom {} calibration {} temp {} volt {} power (tx {} rx {})".format(s.index,
+                print(("index {} tx disable {} dom {} calibration {} temp {} volt {} power (tx {} rx {})".format(s.index,
                     s.dom_tx_disable_supported,
                     s.dom_supported,
                     s.calibration,
@@ -417,9 +417,9 @@ class Chassis(ChassisBase):
                     s.dom_volt_supported,
                     s.dom_rx_power_supported,
                     s.dom_tx_power_supported
-                    )
+                    )))
             except:
-                print "fail to retrieve capabilities for module index {}".format(s.index)
+                print(("fail to retrieve capabilities for module index {}".format(s.index)))
 
 
     def get_change_event(self, timeout=0):
@@ -481,7 +481,7 @@ class Chassis(ChassisBase):
             return
 
         from . import sfp
-        for index, status in port_dict.items():
+        for index, status in list(port_dict.items()):
             if status == sfp.SFP_STATUS_INSERTED:
                 try:
                     self.get_sfp(index).reinit()
