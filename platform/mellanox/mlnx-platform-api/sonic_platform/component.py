@@ -52,7 +52,7 @@ class MPFAManager(object):
         contents_path = tempfile.mkdtemp(prefix='mpfa-')
 
         cmd = self.MPFA_EXTRACT_COMMAND.format(mpfa_path, contents_path)
-        subprocess.check_call(cmd.split())
+        subprocess.check_call(cmd.split(), universal_newlines=True)
 
         self.__contents_path = contents_path
 
@@ -79,7 +79,7 @@ class MPFAManager(object):
     def cleanup(self):
         if os.path.exists(self.__contents_path):
             cmd = self.MPFA_CLEANUP_COMMAND.format(self.__contents_path)
-            subprocess.check_call(cmd.split())
+            subprocess.check_call(cmd.split(), universal_newlines=True)
 
         self.__contents_path = None
         self.__metadata = None
@@ -117,11 +117,14 @@ class ONIEUpdater(object):
             self.__umount_onie_fs()
 
         cmd = "fdisk -l | grep 'ONIE boot' | awk '{print $1}'"
-        fs_path = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).rstrip('\n')
+        fs_path = subprocess.check_output(cmd, 
+                                          stderr=subprocess.STDOUT, 
+                                          shell=True, 
+                                          universal_newlines=True).rstrip('\n')
 
         os.mkdir(fs_mountpoint)
         cmd = "mount -n -r -t ext4 {} {}".format(fs_path, fs_mountpoint)
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd, shell=True, universal_newlines=True)
 
         fs_onie_path = os.path.join(fs_mountpoint, 'onie/tools/lib/onie')
         os.symlink(fs_onie_path, onie_path)
@@ -137,7 +140,7 @@ class ONIEUpdater(object):
 
         if os.path.ismount(fs_mountpoint):
             cmd = "umount -rf {}".format(fs_mountpoint)
-            subprocess.check_call(cmd, shell=True)
+            subprocess.check_call(cmd, shell=True, universal_newlines=True)
 
         if os.path.exists(fs_mountpoint):
             os.rmdir(fs_mountpoint)
@@ -146,7 +149,7 @@ class ONIEUpdater(object):
         cmd = self.ONIE_FW_UPDATE_CMD_ADD.format(image_path)
 
         try:
-            subprocess.check_call(cmd.split())
+            subprocess.check_call(cmd.split(), universal_newlines=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to stage firmware update: {}".format(str(e)))
 
@@ -154,7 +157,7 @@ class ONIEUpdater(object):
         cmd = self.ONIE_FW_UPDATE_CMD_REMOVE.format(os.path.basename(image_path))
 
         try:
-            subprocess.check_call(cmd.split())
+            subprocess.check_call(cmd.split(), universal_newlines=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to unstage firmware update: {}".format(str(e)))
 
@@ -162,7 +165,7 @@ class ONIEUpdater(object):
         cmd = self.ONIE_FW_UPDATE_CMD_UPDATE
 
         try:
-            subprocess.check_call(cmd.split())
+            subprocess.check_call(cmd.split(), universal_newlines=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to trigger firmware update: {}".format(str(e)))
 
@@ -170,7 +173,9 @@ class ONIEUpdater(object):
         cmd = self.ONIE_FW_UPDATE_CMD_SHOW_PENDING
 
         try:
-            output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+            output = subprocess.check_output(cmd.split(), 
+                                             stderr=subprocess.STDOUT, 
+                                             universal_newlines=True).rstrip('\n')
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to get pending firmware updates: {}".format(str(e)))
 
@@ -255,7 +260,9 @@ class ONIEUpdater(object):
             cmd = self.ONIE_IMAGE_INFO_COMMAND.format(image_path)
 
             try:
-                output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+                output = subprocess.check_output(cmd.split(), 
+                                                 stderr=subprocess.STDOUT, 
+                                                 universal_newlines=True).rstrip('\n')
             except subprocess.CalledProcessError as e:
                 raise RuntimeError("Failed to get ONIE firmware info: {}".format(str(e)))
 
@@ -275,7 +282,9 @@ class ONIEUpdater(object):
         cmd = self.ONIE_FW_UPDATE_CMD_SHOW_PENDING
 
         try:
-            output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+            output = subprocess.check_output(cmd.split(), 
+                                             stderr=subprocess.STDOUT, 
+                                             universal_newlines=True).rstrip('\n')
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to get pending firmware updates: {}".format(str(e)))
 
@@ -340,7 +349,11 @@ class Component(ComponentBase):
     @staticmethod
     def _get_command_result(cmdline):
         try:
-            proc = subprocess.Popen(cmdline, stdout=subprocess.PIPE, shell=True, stderr=subprocess.STDOUT)
+            proc = subprocess.Popen(cmdline, 
+                                    stdout=subprocess.PIPE, 
+                                    shell=True, 
+                                    stderr=subprocess.STDOUT, 
+                                    universal_newlines=True)
             stdout = proc.communicate()[0]
             rc = proc.wait()
             result = stdout.rstrip('\n')
@@ -445,7 +458,7 @@ class ComponentSSD(Component):
 
         try:
             print("INFO: Installing {} firmware update".format(self.name))
-            subprocess.check_call(cmd.split())
+            subprocess.check_call(cmd.split(), universal_newlines=True)
         except subprocess.CalledProcessError as e:
             print("ERROR: Failed to update {} firmware: {}".format(self.name, str(e)))
             return False
@@ -456,7 +469,9 @@ class ComponentSSD(Component):
         cmd = self.SSD_INFO_COMMAND
 
         try:
-            output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+            output = subprocess.check_output(cmd.split(), 
+                                             stderr=subprocess.STDOUT, 
+                                             universal_newlines=True).rstrip('\n')
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to get {} info: {}".format(self.name, str(e)))
 
@@ -470,7 +485,9 @@ class ComponentSSD(Component):
         cmd = self.SSD_FIRMWARE_INFO_COMMAND.format(image_path)
 
         try:
-            output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+            output = subprocess.check_output(cmd.split(), 
+                                             stderr=subprocess.STDOUT, 
+                                             universal_newlines=True).rstrip('\n')
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to get {} firmware info: {}".format(self.name, str(e)))
 
@@ -503,7 +520,9 @@ class ComponentSSD(Component):
         cmd = self.SSD_FIRMWARE_INFO_COMMAND.format(image_path)
 
         try:
-            output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+            output = subprocess.check_output(cmd.split(), 
+                                             stderr=subprocess.STDOUT, 
+                                             universal_newlines=True).rstrip('\n')
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to get {} firmware info: {}".format(self.name, str(e)))
 
@@ -575,7 +594,9 @@ class ComponentBIOS(Component):
         cmd = self.BIOS_VERSION_COMMAND
 
         try:
-            version = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT).rstrip('\n')
+            version = subprocess.check_output(cmd.split(), 
+                                              stderr=subprocess.STDOUT, 
+                                              universal_newlines=True).rstrip('\n')
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Failed to get {} version: {}".format(self.name, str(e)))
 
@@ -652,7 +673,7 @@ class ComponentCPLD(Component):
 
         try:
             print("INFO: Installing {} firmware update: path={}".format(self.name, image_path))
-            subprocess.check_call(cmd.split())
+            subprocess.check_call(cmd.split(), universal_newlines=True)
         except subprocess.CalledProcessError as e:
             print("ERROR: Failed to update {} firmware: {}".format(self.name, str(e)))
             return False

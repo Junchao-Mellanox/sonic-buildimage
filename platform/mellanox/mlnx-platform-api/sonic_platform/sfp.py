@@ -337,7 +337,11 @@ class SFP(SfpBase):
         presence = False
         ethtool_cmd = "ethtool -m sfp{} hex on offset 0 length 1 2>/dev/null".format(self.index)
         try:
-            proc = subprocess.Popen(ethtool_cmd, stdout=subprocess.PIPE, shell=True, stderr=subprocess.STDOUT)
+            proc = subprocess.Popen(ethtool_cmd, 
+                                    stdout=subprocess.PIPE, 
+                                    shell=True, 
+                                    stderr=subprocess.STDOUT, 
+                                    universal_newlines=True)
             stdout = proc.communicate()[0]
             proc.wait()
             result = stdout.rstrip('\n')
@@ -355,7 +359,9 @@ class SFP(SfpBase):
         eeprom_raw = []
         ethtool_cmd = "ethtool -m sfp{} hex on offset {} length {}".format(self.index, offset, num_bytes)
         try:
-            output = subprocess.check_output(ethtool_cmd, shell=True)
+            output = subprocess.check_output(ethtool_cmd, 
+                                             shell=True, 
+                                             niversal_newlines=True)
             output_lines = output.splitlines()
             first_line_raw = output_lines[0]
             if "Offset" in first_line_raw:
