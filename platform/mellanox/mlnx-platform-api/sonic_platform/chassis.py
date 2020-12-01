@@ -45,7 +45,7 @@ logger = Logger()
 
 # magic code defnition for port number, qsfp port position of each Platform
 # port_position_tuple = (PORT_START, QSFP_PORT_START, PORT_END, PORT_IN_BLOCK, EEPROM_OFFSET)
-platform_dict_port = {'x86_64-mlnx_msn2010-r0': 3, 'x86_64-mlnx_msn2100-r0': 1, 'x86_64-mlnx_msn2410-r0': 2, 'x86_64-mlnx_msn2700-r0': 0, 'x86_64-mlnx_lssn2700':0, 'x86_64-mlnx_msn2740-r0': 0, 'x86_64-mlnx_msn3420-r0':5, 'x86_64-mlnx_msn3700-r0': 0, 'x86_64-mlnx_msn3700c-r0': 0, 'x86_64-mlnx_msn3800-r0': 4, 'x86_64-mlnx_msn4600c-r0':4, 'x86_64-mlnx_msn4700-r0': 0}
+platform_dict_port = {'x86_64-mlnx_msn2010-r0': 3, 'x86_64-mlnx_msn2100-r0': 1, 'x86_64-mlnx_msn2410-r0': 2, 'x86_64-mlnx_msn2700-r0': 0, 'x86_64-mlnx_lssn2700':0, 'x86_64-mlnx_msn2740-r0': 0, 'x86_64-mlnx_msn3420-r0':5, 'x86_64-mlnx_msn3700-r0': 0, 'x86_64-mlnx_msn3700c-r0': 0, 'x86_64-mlnx_msn3800-r0': 4, 'x86_64-mlnx_msn4600c-r0':4, 'x86_64-mlnx_msn4700-r0': 0, 'x86_64-mlnx_msn4410-r0': 0}
 port_position_tuple_list = [(0, 0, 31, 32, 1), (0, 0, 15, 16, 1), (0, 48, 55, 56, 1), (0, 18, 21, 22, 1), (0, 0, 63, 64, 1), (0, 48, 59, 60, 1)]
 
 class Chassis(ChassisBase):
@@ -104,7 +104,7 @@ class Chassis(ChassisBase):
             drawer = drawer_ctor(drawer_index, fan_data)
             self._fan_drawer_list.append(drawer)
             for index in range(fan_num_per_drawer):
-                fan = Fan(fan_index, drawer)
+                fan = Fan(fan_index, drawer, index + 1)
                 fan_index += 1
                 drawer._fan_list.append(fan)
                 self._fan_list.append(fan)
@@ -130,18 +130,19 @@ class Chassis(ChassisBase):
 
         for index in range(self.PORT_START, self.PORT_END + 1):
             if index in range(self.QSFP_PORT_START, self.PORTS_IN_BLOCK + 1):
-                sfp_module = SFP(index, 'QSFP', self.sdk_handle)
+                sfp_module = SFP(index, 'QSFP', self.sdk_handle, self.platform_name)
             else:
-                sfp_module = SFP(index, 'SFP', self.sdk_handle)
+                sfp_module = SFP(index, 'SFP', self.sdk_handle, self.platform_name)
+
             self._sfp_list.append(sfp_module)
 
         self.sfp_module_initialized = True
 
 
     def initialize_thermals(self):
-        from sonic_platform.thermal import initialize_thermals
+        from sonic_platform.thermal import initialize_chassis_thermals
         # Initialize thermals
-        initialize_thermals(self.platform_name, self._thermal_list, self._psu_list)
+        initialize_chassis_thermals(self.platform_name, self._thermal_list)
 
 
     def initialize_eeprom(self):
@@ -514,3 +515,20 @@ class Chassis(ChassisBase):
             specified.
         """
         return None if not Chassis._led else Chassis._led.get_status()
+
+    def get_position_in_parent(self):
+        """
+		Retrieves 1-based relative physical position in parent device. If the agent cannot determine the parent-relative position
+        for some reason, or if the associated value of entPhysicalContainedIn is '0', then the value '-1' is returned
+		Returns:
+		    integer: The 1-based relative physical position in parent device or -1 if cannot determine the position
+		"""
+        return -1
+
+    def is_replaceable(self):
+        """
+        Indicate whether this device is replaceable.
+        Returns:
+            bool: True if it is replaceable.
+        """
+        return False

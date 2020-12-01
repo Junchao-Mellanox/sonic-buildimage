@@ -8,7 +8,6 @@ CFGGEN_PARAMS=" \
     -t /usr/share/sonic/templates/switch.json.j2,/etc/swss/config.d/switch.json \
     -t /usr/share/sonic/templates/ipinip.json.j2,/etc/swss/config.d/ipinip.json \
     -t /usr/share/sonic/templates/ports.json.j2,/etc/swss/config.d/ports.json \
-    -t /usr/share/sonic/templates/copp.json.j2,/etc/swss/config.d/00-copp.config.json \
     -t /usr/share/sonic/templates/vlan_vars.j2 \
     -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf \
 "
@@ -25,4 +24,4 @@ if [ "$VLAN" != "" ]; then
     cp /usr/share/sonic/templates/ndppd.conf /etc/supervisor/conf.d/
 fi
 
-exec /usr/bin/supervisord
+exec /usr/local/bin/supervisord

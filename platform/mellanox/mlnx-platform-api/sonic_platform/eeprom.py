@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #############################################################################
 # Mellanox
 #
@@ -7,21 +5,16 @@
 # provides the eeprom information which are available in the platform
 #
 #############################################################################
-try:
-    import exceptions
-except ImportError as e:
-    # exceptions module has been removed from python3, catch the ImportError here to make 
-    # this code compatible with both python2 and python3
-    import builtins as exceptions
-
 import os
 import sys
 import re
-try:
-    from cStringIO import StringIO  # python2
-except ImportError as e:
+if sys.version_info.major == 3:
+    import builtins as exceptions
     from io import StringIO
-
+else:
+    import exceptions
+    from cStringIO import StringIO
+    
 try:
     from sonic_platform_base.sonic_eeprom import eeprom_tlvinfo
 except ImportError as e:

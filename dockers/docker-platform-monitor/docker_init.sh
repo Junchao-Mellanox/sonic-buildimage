@@ -86,4 +86,4 @@ else
     sonic-cfggen -a "$confvar" -t $SUPERVISOR_CONF_TEMPLATE > $SUPERVISOR_CONF_FILE
 fi
 
-exec /usr/bin/supervisord
+exec /usr/local/bin/supervisord

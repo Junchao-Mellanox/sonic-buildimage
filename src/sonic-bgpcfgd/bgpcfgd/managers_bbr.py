@@ -1,8 +1,9 @@
+import re
+
 from swsscommon import swsscommon
 
-from .log import log_err, log_info, log_crit
+from .log import log_err, log_info
 from .manager import Manager
-from .utils import run_command
 
 
 class BBRMgr(Manager):
@@ -32,12 +33,10 @@ class BBRMgr(Manager):
             return True
         if not self.__set_validation(key, data):
             return True
-        cmds = self.__set_prepare_config(data['status'])
-        rv = self.cfg_mgr.push_list(cmds)
-        if not rv:
-            log_crit("BBRMgr::can't apply configuration")
-            return True
-        self.__restart_peers()
+        cmds, peer_groups_to_restart = self.__set_prepare_config(data['status'])
+        self.cfg_mgr.push_list(cmds)
+        self.cfg_mgr.restart_peer_groups(peer_groups_to_restart)
+        log_info("BBRMgr::Scheduled BBR update")
         return True
 
     def del_handler(self, key):
@@ -49,18 +48,23 @@ class BBRMgr(Manager):
         if not 'bgp' in self.constants:
             log_err("BBRMgr::Disabled: 'bgp' key is not found in constants")
             return
-        if 'bbr' in self.constants['bgp'] and \
-                'enabled' in self.constants['bgp']['bbr'] and \
-                self.constants['bgp']['bbr']['enabled']:
+        if 'bbr' in self.constants['bgp'] \
+                and 'enabled' in self.constants['bgp']['bbr'] \
+                and self.constants['bgp']['bbr']['enabled']:
             self.bbr_enabled_pgs = self.__read_pgs()
             if self.bbr_enabled_pgs:
                 self.enabled = True
-                self.directory.put(self.db_name, self.table_name, 'status', "enabled")
-                log_info("BBRMgr::Initialized and enabled")
+                if 'default_state' in self.constants['bgp']['bbr'] \
+                        and self.constants['bgp']['bbr']['default_state'] == 'enabled':
+                    default_status = "enabled"
+                else:
+                    default_status = "disabled"
+                self.directory.put(self.db_name, self.table_name, 'status', default_status)
+                log_info("BBRMgr::Initialized and enabled. Default state: '%s'" % default_status)
             else:
                 log_info("BBRMgr::Disabled: no BBR enabled peers")
         else:
-            log_info("BBRMgr::Disabled: not enabled in the constants")
+            log_info("BBRMgr::Disabled: no bgp.bbr.enabled in the constants")
 
     def __read_pgs(self):
         """
@@ -102,19 +106,28 @@ class BBRMgr(Manager):
         :return: list of commands prepared for FRR
         """
         bgp_asn = self.directory.get_slot("CONFIG_DB", swsscommon.CFG_DEVICE_METADATA_TABLE_NAME)["localhost"]["bgp_asn"]
+        available_peer_groups = self.__get_available_peer_groups()
         cmds = ["router bgp %s" % bgp_asn]
         prefix_of_commands = "" if status == "enabled" else "no "
+        peer_groups_to_restart = set()
         for af in ["ipv4", "ipv6"]:
             cmds.append(" address-family %s" % af)
             for pg_name in sorted(self.bbr_enabled_pgs.keys()):
-                if af in self.bbr_enabled_pgs[pg_name]:
+                if pg_name in available_peer_groups and af in self.bbr_enabled_pgs[pg_name]:
                     cmds.append("  %sneighbor %s allowas-in 1" % (prefix_of_commands, pg_name))
-        return cmds
+                    peer_groups_to_restart.add(pg_name)
+        return cmds, list(peer_groups_to_restart)
 
-    def __restart_peers(self):
-        """ Restart peer-groups which support BBR """
-        for peer_group in sorted(self.bbr_enabled_pgs.keys()):
-            rc, out, err = run_command(["vtysh", "-c", "clear bgp peer-group %s soft in" % peer_group])
-            if rc != 0:
-                log_value = peer_group, rc, out, err
-                log_crit("BBRMgr::Can't restart bgp peer-group '%s'. rc='%d', out='%s', err='%s'" % log_value)
+    def __get_available_peer_groups(self):
+        """
+        Extract configured peer-groups from the config
+        :return: set of available peer-groups
+        """
+        re_pg = re.compile(r'^\s*neighbor\s+(\S+)\s+peer-group\s*$')
+        res = set()
+        self.cfg_mgr.update()
+        for line in self.cfg_mgr.get_text():
+            m = re_pg.match(line)
+            if m:
+                res.add(m.group(1))
+        return res

@@ -138,8 +138,21 @@ endif
 
 
 include $(RULES_PATH)/functions
+
+ifeq ($(SONIC_USE_PDDF_FRAMEWORK),y)
+PDDF_SUPPORT = y
+else
+PDDF_SUPPORT = n
+endif
+export PDDF_SUPPORT
+
 include $(RULES_PATH)/*.mk
 ifneq ($(CONFIGURED_PLATFORM), undefined)
+ifeq ($(PDDF_SUPPORT), y)
+PDDF_DIR = pddf
+PLATFORM_PDDF_PATH = platform/$(PDDF_DIR)
+include $(PLATFORM_PDDF_PATH)/rules.mk
+endif
 include $(PLATFORM_PATH)/rules.mk
 endif
 
@@ -237,6 +250,7 @@ $(info "INCLUDE_SFLOW"                   : "$(INCLUDE_SFLOW)")
 $(info "INCLUDE_NAT"                     : "$(INCLUDE_NAT)")
 $(info "INCLUDE_KUBERNETES"              : "$(INCLUDE_KUBERNETES)")
 $(info "TELEMETRY_WRITABLE"              : "$(TELEMETRY_WRITABLE)")
+$(info "PDDF_SUPPORT"                    : "$(PDDF_SUPPORT)")
 $(info )
 else
 $(info SONiC Build System for $(CONFIGURED_PLATFORM):$(CONFIGURED_ARCH))
@@ -811,7 +825,7 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
         $$(addprefix $(FILES_PATH)/,$$($$*_FILES)) \
         $(if $(findstring y,$(ENABLE_ZTP)),$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(SONIC_ZTP))) \
         $(if $(findstring y,$(INCLUDE_HOST_SERVICE)),$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(SONIC_HOST_SERVICE))) \
-        $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_UTILITIES_PY2)) \
+        $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_UTILITIES_PY3)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PY_COMMON_PY2)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PY_COMMON_PY3)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_CONFIG_ENGINE_PY2)) \
@@ -820,7 +834,7 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PLATFORM_COMMON_PY3)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(REDIS_DUMP_LOAD_PY2)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PLATFORM_API_PY2)) \
-        $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PLATFORM_API_PY3)) \
+        $(if $(findstring y,$(PDDF_SUPPORT)),$(addprefix $(PYTHON_WHEELS_PATH)/,$(PDDF_PLATFORM_API_BASE_PY2))) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_YANG_MODELS_PY3)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_YANG_MGMT_PY2)) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_YANG_MGMT_PY3)) \
@@ -848,6 +862,7 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
 	export include_sflow="$(INCLUDE_SFLOW)"
 	export include_mgmt_framework="$(INCLUDE_MGMT_FRAMEWORK)"
 	export include_iccpd="$(INCLUDE_ICCPD)"
+	export pddf_support="$(PDDF_SUPPORT)"
 	export shutdown_bgp_on_start="$(SHUTDOWN_BGP_ON_START)"
 	export include_kubernetes="$(INCLUDE_KUBERNETES)"
 	export enable_pfcwd_on_start="$(ENABLE_PFCWD_ON_START)"
@@ -871,7 +886,7 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
 	export multi_instance="false"
 	export python_swss_debs="$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$($(LIBSWSSCOMMON)_RDEPENDS))"
 	export python_swss_debs+=" $(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(LIBSWSSCOMMON)) $(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(PYTHON_SWSSCOMMON)) $(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(PYTHON3_SWSSCOMMON))"
-	export sonic_utilities_py2_wheel_path="$(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_UTILITIES_PY2))"
+	export sonic_utilities_py3_wheel_path="$(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_UTILITIES_PY3))"
 	export sonic_host_services_py3_wheel_path="$(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_HOST_SERVICES_PY3))"
 
 	$(foreach docker, $($*_DOCKERS),\
