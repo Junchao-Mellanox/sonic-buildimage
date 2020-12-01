@@ -63,6 +63,7 @@ if [ $? -ne 0 ]; then
     fi
 else
     SONIC_PLATFORM_API_PYTHON_VERSION=3
+fi
 
 if [ -e $SENSORS_CONF_FILE ]; then
     HAVE_SENSORS_CONF=1

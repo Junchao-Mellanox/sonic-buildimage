@@ -12,10 +12,14 @@ try:
     import os
     import io
     import re
+    import sys
     import glob
     import tempfile
     import subprocess
-    import configparser
+    if sys.version_info[0] > 2:
+        import configparser
+    else:
+        import ConfigParser as configparser
 
     from sonic_platform_base.component_base import ComponentBase
 except ImportError as e:

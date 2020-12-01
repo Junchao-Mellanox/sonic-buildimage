@@ -21,11 +21,17 @@ try:
     from sonic_platform_base.sonic_sfp.qsfp_dd import qsfp_dd_InterfaceId
     from sonic_platform_base.sonic_sfp.qsfp_dd import qsfp_dd_Dom
     from sonic_py_common.logger import Logger
-    from python_sdk_api.sxd_api import *
-    from python_sdk_api.sx_api import *
 
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
+
+try:
+    # python_sdk_api does not support python3 for now, for python3, catch the ImportError
+    # and ignore it here. Meanwhile, we have to trigger xcvrd using python2 now.
+    from python_sdk_api.sxd_api import *
+    from python_sdk_api.sx_api import *
+except ImportError as e:
+    pass
 
 # definitions of the offset and width for values in XCVR info eeprom
 XCVR_INTFACE_BULK_OFFSET = 0
@@ -361,7 +367,7 @@ class SFP(SfpBase):
         try:
             output = subprocess.check_output(ethtool_cmd, 
                                              shell=True, 
-                                             niversal_newlines=True)
+                                             universal_newlines=True)
             output_lines = output.splitlines()
             first_line_raw = output_lines[0]
             if "Offset" in first_line_raw:
