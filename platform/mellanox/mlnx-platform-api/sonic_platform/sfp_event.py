@@ -248,7 +248,7 @@ class sfp_event:
 
                 # If get SFP status error(0x3) from SDK, then need to read the error_type to get the detailed error
                 if sfp_state == STATUS_ERROR:
-                    if error_type in list(sdk_sfp_err_type_dict.keys()):
+                    if error_type in sdk_sfp_err_type_dict.keys():
                         # In SFP at error status case, need to overwrite the sfp_state with the exact error code
                         sfp_state = sdk_sfp_err_type_dict[error_type]
                     else:

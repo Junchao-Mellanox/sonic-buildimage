@@ -413,7 +413,7 @@ class Chassis(ChassisBase):
         """
         for s in self._sfp_list:
             try:
-                print(("index {} tx disable {} dom {} calibration {} temp {} volt {} power (tx {} rx {})".format(s.index,
+                print("index {} tx disable {} dom {} calibration {} temp {} volt {} power (tx {} rx {})".format(s.index,
                     s.dom_tx_disable_supported,
                     s.dom_supported,
                     s.calibration,
@@ -421,9 +421,9 @@ class Chassis(ChassisBase):
                     s.dom_volt_supported,
                     s.dom_rx_power_supported,
                     s.dom_tx_power_supported
-                    )))
+                    ))
             except:
-                print(("fail to retrieve capabilities for module index {}".format(s.index)))
+                print("fail to retrieve capabilities for module index {}".format(s.index))
 
 
     def get_change_event(self, timeout=0):
@@ -485,7 +485,7 @@ class Chassis(ChassisBase):
             return
 
         from . import sfp
-        for index, status in list(port_dict.items()):
+        for index, status in port_dict.items():
             if status == sfp.SFP_STATUS_INSERTED:
                 try:
                     self.get_sfp(index).reinit()
