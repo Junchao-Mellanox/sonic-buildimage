@@ -315,7 +315,7 @@ def deinitialize_sdk_handle(sdk_handle):
 class SFP(SfpBase):
     """Platform-specific SFP class"""
 
-    def __init__(self, sfp_index, sfp_type, sdk_handle, platform):
+    def __init__(self, sfp_index, sfp_type, sdk_handle_getter, platform):
         SfpBase.__init__(self)
         self.index = sfp_index + 1
         self.sfp_eeprom_path = "qsfp{}".format(self.index)
@@ -323,12 +323,16 @@ class SFP(SfpBase):
         self._detect_sfp_type(sfp_type)
         self.dom_tx_disable_supported = False
         self._dom_capability_detect()
-        self.sdk_handle = sdk_handle
+        self.sdk_handle_getter = sdk_handle_getter
         self.sdk_index = sfp_index
 
         # initialize SFP thermal list
         from .thermal import initialize_sfp_thermals
         initialize_sfp_thermals(platform, self._thermal_list, self.index)
+
+    @property
+    def sdk_handle(self):
+        return self.sdk_handle_getter()
 
     def reinit(self):
 
