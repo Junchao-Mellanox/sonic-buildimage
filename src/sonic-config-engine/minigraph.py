@@ -255,7 +255,7 @@ def parse_png(png, hname, dpg_ecmp_content = None):
                 if name == hname:
                     cluster = device.find(str(QName(ns, "ClusterName")))
 
-                    if cluster != None and "str" in cluster.text.lower():
+                    if cluster != None and cluster.text != None and "str" in cluster.text.lower():
                         is_storage_device = True
 
         if child.tag == str(QName(ns, "DeviceInterfaceLinks")):
@@ -1178,6 +1178,10 @@ def parse_xml(filename, platform=None, port_config_file=None, asic_name=None, hw
 
     if bool(results['PEER_SWITCH']):
         results['DEVICE_METADATA']['localhost']['subtype'] = 'DualToR'
+        if len(results['PEER_SWITCH'].keys()) > 1:
+            print("Warning: more than one peer switch was found. Only the first will be parsed: {}".format(results['PEER_SWITCH'].keys()[0]))
+
+        results['DEVICE_METADATA']['localhost']['peer_switch'] = list(results['PEER_SWITCH'].keys())[0]
 
     if is_storage_device:
         results['DEVICE_METADATA']['localhost']['storage_device'] = "true"
@@ -1501,10 +1505,20 @@ def get_mux_cable_entries(mux_cable_ports, neighbors, devices):
             entry = {}
             neighbor = neighbors[intf]['name']
             entry['state'] = 'auto'
-            entry['server_ipv4'] = devices[neighbor]['lo_addr']
-            if 'lo_addr_v6' in devices[neighbor]:
-                entry['server_ipv6'] = devices[neighbor]['lo_addr_v6']
-            mux_cable_table[intf] = entry 
+
+            if devices[neighbor]['lo_addr'] is not None:
+                # Always force a /32 prefix for server IPv4 loopbacks
+                server_ipv4_lo_addr = devices[neighbor]['lo_addr'].split("/")[0]
+                server_ipv4_lo_prefix = ipaddress.ip_network(UNICODE_TYPE(server_ipv4_lo_addr))
+                entry['server_ipv4'] = str(server_ipv4_lo_prefix)
+
+                if 'lo_addr_v6' in devices[neighbor] and devices[neighbor]['lo_addr_v6'] is not None:
+                    server_ipv6_lo_addr = devices[neighbor]['lo_addr_v6'].split('/')[0]
+                    server_ipv6_lo_prefix = ipaddress.ip_network(UNICODE_TYPE(server_ipv6_lo_addr))
+                    entry['server_ipv6'] = str(server_ipv6_lo_prefix)
+                mux_cable_table[intf] = entry 
+            else:
+                print("Warning: no server IPv4 loopback found for {}, skipping mux cable table entry".format(neighbor))
 
     return mux_cable_table
 

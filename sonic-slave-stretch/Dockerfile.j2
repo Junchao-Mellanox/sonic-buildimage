@@ -196,24 +196,6 @@ RUN apt-get update && apt-get install -y \
         lua-cjson-dev \
 # For mft kernel module build
         dkms \
-# For python3.5 build
-        sharutils \
-        libncursesw5-dev \
-        libbz2-dev \
-        liblzma-dev \
-        libgdbm-dev \
-        tk-dev \
-        blt-dev \
-        libmpdec-dev \
-        libbluetooth-dev \
-        locales \
-        libsqlite3-dev \
-        libgpm2 \
-        time \
-        net-tools \
-        xvfb \
-        python-sphinx \
-        python3-sphinx \
 # For Jenkins static analysis, unit testing and code coverage
         cppcheck \
         clang \
@@ -366,8 +348,8 @@ RUN pip3 install mockredispy==2.9.3
 # For sonic-mgmt-framework
 RUN pip2 install "PyYAML==5.3.1"
 RUN pip3 install "PyYAML==5.3.1"
-RUN pip2 install "lxml==4.6.1"
-RUN pip3 install "lxml==4.6.1"
+RUN pip2 install "lxml==4.6.2"
+RUN pip3 install "lxml==4.6.2"
 
 
 # For sonic-platform-common testing

@@ -197,24 +197,6 @@ RUN apt-get update && apt-get install -y \
         lua-cjson-dev \
 # For mft kernel module build
         dkms \
-# For python3.5 build
-        sharutils \
-        libncursesw5-dev \
-        libbz2-dev \
-        liblzma-dev \
-        libgdbm-dev \
-        tk-dev \
-        blt-dev \
-        libmpdec-dev \
-        libbluetooth-dev \
-        locales \
-        libsqlite3-dev \
-        libgpm2 \
-        time \
-        net-tools \
-        xvfb \
-        python-sphinx \
-        python3-sphinx \
 # For Jenkins static analysis, unit testing and code coverage
         cppcheck \
         clang \
@@ -320,7 +302,26 @@ RUN apt-get update && apt-get install -y \
         libxml2-utils \
         xsltproc \
         python-lxml \
-        libexpat1-dev
+        libexpat1-dev \
+# For WPA supplication
+        qtbase5-dev          \
+        aspell-en            \
+        libhiredis-dev       \
+        libnl-3-dev          \
+        swig3.0              \
+        libpython2.7-dev     \
+        libssl-dev           \
+        dbus                 \
+        libdbus-1-dev        \
+        libdbus-glib-1-2     \
+        libdbus-glib-1-dev   \
+        libreadline-dev      \
+        libncurses5-dev      \
+        libpcsclite-dev      \
+        docbook-to-man       \
+        docbook-utils        \
+# For kdump-tools
+        libbz2-dev
 
 # Build fix for ARMHF buster libsairedis
 {%- if CONFIGURED_ARCH == "armhf" %}
@@ -412,8 +413,8 @@ RUN pip2 install j2cli==0.3.10
 # For sonic-mgmt-framework
 RUN pip2 install "PyYAML==5.3.1"
 RUN pip3 install "PyYAML==5.3.1"
-RUN pip2 install "lxml==4.6.1"
-RUN pip3 install "lxml==4.6.1"
+RUN pip2 install "lxml==4.6.2"
+RUN pip3 install "lxml==4.6.2"
 
 # For sonic-platform-common testing
 RUN pip3 install redis
@@ -479,11 +480,12 @@ RUN update-alternatives --set iptables /usr/sbin/iptables-legacy
 RUN pip2 install m2crypto==0.36.0
 
 # Install swi tools
-RUN pip2 install git+https://github.com/aristanetworks/swi-tools.git@d51761ec0bb93c73039233f3c01ed48235ffad00
+RUN pip3 install git+https://github.com/aristanetworks/swi-tools.git@bead66bf261770237f7dd21ace3774ba04a017e9
 
 {% if CONFIGURED_ARCH != "amd64" -%}
 # Install node.js for azure pipeline
-RUN apt-get install -y node.js
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
+RUN apt-get install -y nodejs
 
 # Tell azure pipeline to use node.js in the docker
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/bin/node"

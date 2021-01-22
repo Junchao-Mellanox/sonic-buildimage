@@ -117,6 +117,7 @@ define add_dbg_docker
 $(2)_PATH = $($(1)_PATH)
 $(2)_DBG_DEPENDS += $($(1)_DBG_DEPENDS)
 $(2)_DBG_IMAGE_PACKAGES += $($(1)_DBG_IMAGE_PACKAGES)
+$(2)_PYTHON_DEBS += $($(1)_PYTHON_DEBS)
 $(2)_PYTHON_WHEELS += $($(1)_PYTHON_WHEELS)
 $(2)_LOAD_DOCKERS += $($(1)_LOAD_DOCKERS)
 $(2)_CACHE_MODE += $($(1)_CACHE_MODE)
@@ -152,4 +153,16 @@ if [ -n "$(1)" ]; then \
         fi; \
     done; \
 fi
+endef
+
+###############################################################################
+## Setup overlay fs for dpkg admin directory /var/lib/dpkg
+###############################################################################
+define SETUP_OVERLAYFS_FOR_DPKG_ADMINDIR
+upperdir=$(shell mktemp -d -p $(DPKG_ADMINDIR_PATH))
+workdir=$(shell mktemp -d -p $(DPKG_ADMINDIR_PATH))
+mergedir=$(shell mktemp -d -p $(DPKG_ADMINDIR_PATH))
+sudo mount -t overlay overlay -olowerdir=/var/lib/dpkg,upperdir=$$upperdir,workdir=$$workdir $$mergedir
+export SONIC_DPKG_ADMINDIR=$$mergedir
+trap "sudo umount $$mergedir && rm -rf $$mergedir $$upperdir $$workdir" EXIT
 endef
