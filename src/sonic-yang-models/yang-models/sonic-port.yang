@@ -67,6 +67,30 @@ module sonic-port{
 					}
 				}
 
+				leaf autoneg {
+					type string {
+						pattern "0|1";
+					}
+				}
+
+				leaf adv_speeds {
+					type string {
+						length 1..128;
+					}
+				}
+
+				leaf interface_type {
+					type string {
+						length 1..128;
+					}
+				}
+
+				leaf adv_interface_types {
+					type string {
+						length 1..128;
+					}
+				}
+
 				leaf mtu {
 					type uint16 {
 						range 1..9216;
