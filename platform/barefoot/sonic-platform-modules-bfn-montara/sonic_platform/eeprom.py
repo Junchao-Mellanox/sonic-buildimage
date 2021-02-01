@@ -17,7 +17,7 @@ try:
     from sonic_eeprom import eeprom_base
     from sonic_eeprom import eeprom_tlvinfo
 
-    from .platform_thrift_client import thrift_try
+    from platform_thrift_client import thrift_try
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
 
@@ -64,6 +64,11 @@ product_dict = { "Montara"   : "Wedge100BF-32X-O-AC-F-BF",
 EEPROM_SYMLINK = "/var/run/platform/eeprom/syseeprom"
 EEPROM_STATUS = "/var/run/platform/eeprom/status"
 
+try:
+    _str_type = basestring
+except NameError:
+    _str_type = str
+
 class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
     def __init__(self):
 
@@ -101,7 +106,7 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
         f.close()
 
         eeprom_params = ""
-        for attr, val in self.eeprom.__dict__.iteritems():
+        for attr, val in self.eeprom.__dict__.items():
             if val is None:
                 continue
 
@@ -109,7 +114,7 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
             if elem is None:
                 continue
 
-            if isinstance(val, basestring):
+            if isinstance(val, _str_type):
                 value = val.replace('\0', '')
             else:
                 value = str(val)
@@ -136,14 +141,17 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
 
         return True
 
-    def serial_number_str(self):
+    def serial_str(self):
         return self.eeprom.prod_ser_num
 
     def system_eeprom_info(self):
         return self.eeprom.__dict__
 
-    def get_base_mac(self):
-        return self.eeprom.ext_mac_addr
+    def base_mac_addr(self):
+        return self.eeprom.ext_mac_addr.rstrip('\x00')
 
     def part_number_str(self):
         return self.eeprom.prod_part_num
+
+    def modelstr(self):
+        return self.eeprom.prod_name
