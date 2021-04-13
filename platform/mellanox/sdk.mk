@@ -1,12 +1,12 @@
 MLNX_SDK_BASE_PATH = $(PLATFORM_PATH)/sdk-src/sx-kernel/Switch-SDK-drivers/bin/
 MLNX_SDK_PKG_BASE_PATH = $(MLNX_SDK_BASE_PATH)/$(BLDENV)/
-MLNX_SDK_VERSION = 4.4.2418
+MLNX_SDK_VERSION = 4.4.2516
 MLNX_SDK_ISSU_VERSION = 101
 
 MLNX_SDK_DEB_VERSION = $(subst _,.,$(MLNX_SDK_VERSION))
 
 # Place here URL where SDK sources exist
-MLNX_SDK_SOURCE_BASE_URL =
+MLNX_SDK_SOURCE_BASE_URL = http://fit69.mtl.labs.mlnx/auto/sw_system_release/sx_sdk_eth/sx_sdk_eth-4.4.2516/SOURCES
 
 ifneq ($(MLNX_SDK_SOURCE_BASE_URL), )
 SDK_FROM_SRC = y
