@@ -4,10 +4,15 @@
 mkdir -p /etc/supervisor/conf.d/
 
 SENSORS_CONF_FILE="/usr/share/sonic/platform/sensors.conf"
+SENSORS_CONF_PATH_GETTER="/usr/share/sonic/platform/get_sensors_conf_path"
 FANCONTROL_CONF_FILE="/usr/share/sonic/platform/fancontrol"
 
 HAVE_SENSORS_CONF=0
 HAVE_FANCONTROL_CONF=0
+
+if [ -e $SENSORS_CONF_PATH_GETTER ]; then
+    SENSORS_CONF_FILE=$($SENSORS_CONF_PATH_GETTER 2>&1)
+fi
 
 if [ -e $SENSORS_CONF_FILE ]; then
     HAVE_SENSORS_CONF=1
