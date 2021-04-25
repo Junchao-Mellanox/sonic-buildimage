@@ -34,7 +34,7 @@ fi
 # If this platform has an lm-sensors config file, copy it to its proper place
 if [ $HAVE_SENSORS_CONF -eq 1 ]; then
     mkdir -p /etc/sensors.d
-    /bin/cp -f $SENSORS_CONF_FILE /etc/sensors.d/
+    /bin/cp -f $SENSORS_CONF_FILE /etc/sensors.d/sensors.conf
 fi
 
 # If this platform has a fancontrol config file, copy it to its proper place
