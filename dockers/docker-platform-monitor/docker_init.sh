@@ -86,7 +86,7 @@ fi
 if [ -e $SENSORS_CONF_FILE ]; then
     HAVE_SENSORS_CONF=1
     mkdir -p /etc/sensors.d
-    /bin/cp -f $SENSORS_CONF_FILE /etc/sensors.d/
+    /bin/cp -f $SENSORS_CONF_FILE /etc/sensors.d/sensors.conf
 fi
 
 if [ -e $FANCONTROL_CONF_FILE ]; then
