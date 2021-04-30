@@ -55,43 +55,21 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
 
         if not (os.path.exists(EEPROM_SYMLINK) \
                 or os.path.isfile(os.path.join(CACHE_ROOT, CACHE_FILE))):
-            log_error("Nowhere to read syseeprom from! No symlink or cache file found")
+            logger.log_error("Nowhere to read syseeprom from! No symlink or cache file found")
             raise RuntimeError("No syseeprom symlink or cache file found")
 
         self.eeprom_path = EEPROM_SYMLINK
         super(Eeprom, self).__init__(self.eeprom_path, 0, '', True)
+        self._cache_inited = False
         self._eeprom_loaded = False
-        self._load_eeprom()
-        self._eeprom_loaded = True
+
+    def __del__(self):
+        self._clear_cache()
 
     def _load_eeprom(self):
-        cache_file = os.path.join(CACHE_ROOT, CACHE_FILE)
-        if not os.path.exists(CACHE_ROOT):
-            try:
-                os.makedirs(CACHE_ROOT)
-            except:
-                pass
-        else:
-            try:
-                # Make sure first time always read eeprom data from hardware
-                if os.path.exists(cache_file):
-                    os.remove(cache_file)
-            except Exception as e:
-                logger.log_error('Failed to remove cache file {} - {}'.format(cache_file, repr(e)))
-
-        try:
-            self.set_cache_name(cache_file)
-        except:
-            pass
-
         eeprom = self.read_eeprom()
         if eeprom is None :
             return 0
-
-        try:
-            self.update_cache(eeprom)
-        except:
-            pass
 
         self._base_mac = self.mgmtaddrstr(eeprom)
         if self._base_mac is None:
@@ -140,7 +118,45 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
             except:
                 pass
 
+        self._eeprom_loaded = True
         return 0
+
+    def read_eeprom(self):
+        if not self._cache_inited:
+            self._create_cache_folder()
+            self._clear_cache()
+
+            try:
+                self.set_cache_name(os.path.join(CACHE_ROOT, CACHE_FILE))
+            except:
+                pass
+
+            eeprom_data = super().read_eeprom()
+            try:
+                if eeprom_data:
+                    self.update_cache(eeprom_data)
+            except:
+                pass
+
+            self._cache_inited = True
+
+            return eeprom_data
+
+        return super().read_eeprom()
+
+    def _create_cache_folder(self):
+        try:
+            os.makedirs(CACHE_ROOT)
+        except:
+            pass
+
+    def _clear_cache(self):
+        try:
+            cache_file = os.path.join(CACHE_ROOT, CACHE_FILE)
+            if os.path.exists(cache_file):
+                os.remove(cache_file)
+        except Exception as e:
+            logger.log_error('Failed to clear cache file - {}'.format(repr(e)))
 
     def get_base_mac(self):
         """
