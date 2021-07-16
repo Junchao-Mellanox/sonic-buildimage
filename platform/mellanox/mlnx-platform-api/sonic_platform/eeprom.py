@@ -6,6 +6,7 @@
 #
 #############################################################################
 import os
+import subprocess
 import time
 
 from sonic_py_common.logger import Logger
@@ -15,7 +16,8 @@ try:
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
 
-from .utils import default_return
+from .device_data import DeviceDataManager
+from .utils import default_return, is_host
 
 logger = Logger()
 
@@ -24,20 +26,25 @@ logger = Logger()
 # should this be moved to chass.py or here, which better?
 #
 EEPROM_SYMLINK = "/var/run/hw-management/eeprom/vpd_info"
+platform_name = DeviceDataManager.get_platform_name()
+if platform_name and 'simx' in platform_name:
+    if not os.path.exists(EEPROM_SYMLINK):
+        if is_host():
+            platform_path = os.path.join('/usr/share/sonic/device', platform_name)
+        else:
+            platform_path = '/usr/share/sonic/platform'
+        if not os.path.exists(os.path.dirname(EEPROM_SYMLINK)):
+            os.makedirs(os.path.dirname(EEPROM_SYMLINK))
+        subprocess.check_call(['/usr/bin/xxd', '-r', '-p', 'syseeprom.hex', EEPROM_SYMLINK], cwd=platform_path)
+
 
 class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
     RETRIES = 3
 
     def __init__(self):
-        for attempt in range(self.RETRIES):
-            if not os.path.islink(EEPROM_SYMLINK):
-                time.sleep(1)
-            else:
-                break  
-
         if not os.path.exists(EEPROM_SYMLINK):
-            logger.log_error("Nowhere to read syseeprom from! No symlink or cache file found")
-            raise RuntimeError("No syseeprom symlink or cache file found")
+            logger.log_error("Nowhere to read syseeprom from! No symlink found")
+            raise RuntimeError("No syseeprom symlink found")
 
         self.eeprom_path = EEPROM_SYMLINK
         super(Eeprom, self).__init__(self.eeprom_path, 0, '', True)
@@ -96,7 +103,6 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
         """
         if self._eeprom_info_dict is None:
             self._eeprom_info_dict = {}
-
             # Try get from DB first
             db_initialized = self._redis_hget('EEPROM_INFO|State', 'Initialized')
             if db_initialized == '1':
