@@ -31,6 +31,9 @@
                 },
                 "QUEUE_WATERMARK": {
                     "FLEX_COUNTER_STATUS": "enable"
+                },
+                "FLOW_CNT_TRAP": {
+                    "FLEX_COUNTER_STATUS": "enable"
                 }
             }
         }

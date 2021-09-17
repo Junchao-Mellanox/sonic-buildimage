@@ -111,6 +111,13 @@ module sonic-flex_counter {
                 }
             }
 
+            container FLOW_CNT_TRAP {
+                /* HOSTIF_TRAP_COUNTER_FLEX_COUNTER_GROUP */
+                leaf FLEX_COUNTER_STATUS {
+                    type flex_status;
+                }
+            }
+
         }
         /* end of container FLEX_COUNTER_TABLE */
     }
