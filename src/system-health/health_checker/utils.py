@@ -9,7 +9,7 @@ def run_command(command):
     """
     try:
         process = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
-        return process.communicate()[0]
+        return process.communicate()[0].strip()
     except Exception:
         return None
 
