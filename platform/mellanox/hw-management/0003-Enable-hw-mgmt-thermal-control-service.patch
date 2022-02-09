@@ -1,0 +1,24 @@
+From e10da522b12daad1ce2770b9bb925060911bceef Mon Sep 17 00:00:00 2001
+From: junchao <junchao@nvidia.com>
+Date: Tue, 8 Feb 2022 14:28:52 +0800
+Subject: [PATCH] Enable hw-mgmt thermal control service
+
+---
+ debian/rules | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/debian/rules b/debian/rules
+index e256dd8..165bd3f 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -29,6 +29,7 @@ override_dh_installinit:
+ 
+ override_dh_systemd_enable:
+ 	dh_systemd_enable --name=hw-management
++	dh_systemd_enable --name=hw-management-tc
+ 
+ override_dh_systemd_start:
+ 	dh_systemd_start --name=hw-management
+-- 
+1.9.1
+
