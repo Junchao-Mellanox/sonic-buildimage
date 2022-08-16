@@ -93,6 +93,19 @@ module sonic-feature{
                     type stypes:boolean_type;
                     default "false";
                 }
+
+                leaf support_syslog_rate_limit {
+                    description "This configuration indicates the feature support configuring
+                                 syslog rate limit";
+                    type stypes:boolean_type;
+                    default "false";
+                }
+
+                leaf has_customized_syslog_rate_limit {
+                    description "This configuration indicates if the feature has customized syslog rate limit configuration";
+                    type stypes:boolean_type;
+                    default "false";
+                }
             }
         }
     }
