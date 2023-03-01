@@ -4,15 +4,7 @@
         "fan_speed_when_suspend": "60"
     },
     "info_types": [
-        {
-            "type": "fan_info"
-        },
-        {
-            "type": "psu_info"
-        },
-        {
-            "type": "chassis_info"
-        }
+
     ],
     "policies": [
 
