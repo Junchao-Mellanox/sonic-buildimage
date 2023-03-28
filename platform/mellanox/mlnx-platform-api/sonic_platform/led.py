@@ -73,8 +73,16 @@ class Led(object):
 
     def _get_actual_blink_color(self, blink_color):
         if blink_color not in self.supported_blinks:
-            return self._get_similar_color(blink_color)
+            return self._get_similar_blink_color(blink_color)
         return blink_color
+
+    def _get_similar_blink_color(self, color):
+        similar_colors = self.SIMILAR_COLORS.get(color)
+        if similar_colors:
+            for actual_color in similar_colors:
+                if actual_color in self.supported_blinks:
+                    return actual_color
+        return None
 
     def set_status(self, color):
         self.get_capability()
