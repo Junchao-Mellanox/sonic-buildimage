@@ -19,6 +19,7 @@ import time
 
 from sonic_py_common.logger import Logger
 from . import utils
+from . import device_data
 
 logger = Logger()
 
@@ -87,7 +88,8 @@ class Led(object):
     def set_status(self, color):
         self.get_capability()
         if not self.supported_colors:
-            logger.log_error(f'Failed to get LED capability for {self._led_id}')
+            if not device_data.DeviceDataManager.is_simx_platform():
+                logger.log_error(f'Failed to get LED capability for {self._led_id} LED')
             return False
 
         status = False
@@ -169,7 +171,8 @@ class Led(object):
     def get_status(self):
         self.get_capability()
         if not self.supported_colors:
-            logger.log_error(f'Failed to get LED capability for {self._led_id}')
+            if not device_data.DeviceDataManager.is_simx_platform():
+                logger.log_error(f'Failed to get LED capability for {self._led_id} LED')
             return Led.STATUS_LED_COLOR_OFF
 
         try:
