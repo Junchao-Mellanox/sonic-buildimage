@@ -57,11 +57,16 @@ class Led(object):
         self.supported_blinks = set()
 
     def _get_actual_color(self, color):
+        # Different platform has different LED capability, this capability should be
+        # transparent for upper layer. So, here is the logic to help find actual color
+        # if the given color is not supported.
         if color not in self.supported_colors:
             return self._get_similar_color(color)
         return color
 
     def _get_similar_color(self, color):
+        # If a given color is not supported, we try to find a similar color from
+        # canditates
         similar_colors = self.SIMILAR_COLORS.get(color)
         if similar_colors:
             for actual_color in similar_colors:
@@ -70,14 +75,22 @@ class Led(object):
         return None
 
     def _get_primary_color(self, color):
+        # For backward compatible, we don't return the actual color here.
+        # We always return "green"(indicate a good status) or "red"(indicate a bad status) 
+        # which are the "primary" colors.
         return self.PRIMARY_COLORS.get(color, color)
 
     def _get_actual_blink_color(self, blink_color):
+        # Different platform has different LED capability, this capability should be
+        # transparent for upper layer. So, here is the logic to help find actual blink color
+        # if the given blink color is not supported.
         if blink_color not in self.supported_blinks:
             return self._get_similar_blink_color(blink_color)
         return blink_color
 
     def _get_similar_blink_color(self, color):
+        # If a given blink color is not supported, we try to find a similar blink color from
+        # canditates
         similar_colors = self.SIMILAR_COLORS.get(color)
         if similar_colors:
             for actual_color in similar_colors:
@@ -261,6 +274,8 @@ class SystemLed(Led):
 
 
 class SharedLed(object):
+    # for shared LED, blink is not supported for now. Currently, only PSU and fan LED
+    # might be shared LED, and there is no requirement to set PSU/fan LED to blink status.
     LED_PRIORITY = {
         Led.STATUS_LED_COLOR_RED: 0,
         Led.STATUS_LED_COLOR_GREEN: 1
