@@ -5,6 +5,9 @@ $(ARP_UPDATE_SCRIPT)_PATH = files/scripts
 ARP_UPDATE_VARS_TEMPLATE = arp_update_vars.j2
 $(ARP_UPDATE_VARS_TEMPLATE)_PATH = files/build_templates
 
+BOOT_WAITER_SCRIPT = boot_waiter.py
+$(BOOT_WAITER_SCRIPT)_PATH = files/scripts
+
 CONFIGDB_LOAD_SCRIPT = configdb-load.sh
 $(CONFIGDB_LOAD_SCRIPT)_PATH = files/scripts
 
@@ -38,6 +41,7 @@ $(RSYSLOG_PLUGIN_CONF_J2)_PATH = files/build_templates
 SONIC_COPY_FILES += $(CONFIGDB_LOAD_SCRIPT) \
                     $(ARP_UPDATE_SCRIPT) \
                     $(ARP_UPDATE_VARS_TEMPLATE) \
+                    $(BOOT_WAITER_SCRIPT) \
                     $(BUFFERS_CONFIG_TEMPLATE) \
                     $(QOS_CONFIG_TEMPLATE) \
                     $(CBF_CONFIG_TEMPLATE) \

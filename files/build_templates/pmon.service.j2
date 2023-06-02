@@ -4,6 +4,7 @@ Requires=database.service updategraph.service
 After=database.service updategraph.service
 {% if sonic_asic_platform == 'mellanox' %}
 After=syncd.service
+After=warmboot-finalizer.service
 {% endif %}
 BindsTo=sonic.target
 After=sonic.target
