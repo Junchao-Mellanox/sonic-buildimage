@@ -150,7 +150,7 @@ startsecs=0
 stdout_logfile=syslog
 stderr_logfile=syslog
 dependent_startup=true
-dependent_startup_wait_for=bgpd:running
+dependent_startup_wait_for=bgpd:running boot_waiter:exited
 
 {% if DEVICE_METADATA.localhost.docker_routing_config_mode is defined and (DEVICE_METADATA.localhost.docker_routing_config_mode == "unified" or DEVICE_METADATA.localhost.docker_routing_config_mode == "split-unified") %}
 [program:vtysh_b]
@@ -178,3 +178,13 @@ stderr_logfile=syslog
 dependent_startup=true
 dependent_startup_wait_for=bgpd:running
 {% endif %}
+
+[program:boot_waiter]
+command=python3 /usr/bin/boot_waiter.py
+priority=12
+autostart=false
+autorestart=false
+stdout_logfile=syslog
+stderr_logfile=syslog
+dependent_startup=true
+dependent_startup_wait_for=orchagent:running

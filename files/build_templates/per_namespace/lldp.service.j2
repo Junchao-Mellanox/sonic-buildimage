@@ -13,6 +13,7 @@ After=sonic.target
 Before=ntp-config.service
 StartLimitIntervalSec=1200
 StartLimitBurst=3
+After=warmboot-finalizer.service
 
 [Service]
 User={{ sonicadmin_user }}

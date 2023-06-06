@@ -272,7 +272,7 @@ autorestart=false
 stdout_logfile=syslog
 stderr_logfile=syslog
 dependent_startup=true
-dependent_startup_wait_for=swssconfig:exited
+dependent_startup_wait_for=boot_waiter:exited
 
 {% if is_fabric_asic == 0 %}
 [program:fdbsyncd]
@@ -288,3 +288,13 @@ dependent_startup_wait_for=swssconfig:exited
 environment=ASAN_OPTIONS="log_path=/var/log/asan/fdbsyncd-asan.log{{ asan_extra_options }}"
 {% endif %}
 {%- endif %}
+
+[program:boot_waiter]
+command=python3 /usr/bin/boot_waiter.py
+priority=12
+autostart=false
+autorestart=false
+stdout_logfile=syslog
+stderr_logfile=syslog
+dependent_startup=true
+dependent_startup_wait_for=orchagent:running

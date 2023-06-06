@@ -900,21 +900,6 @@ sudo LANG=C cp $SCRIPTS_DIR/mark_dhcp_packet.py $FILESYSTEM_ROOT/usr/local/bin/m
 
 # Copy systemd timer configuration
 # It implements delayed start of services
-sudo cp $BUILD_TEMPLATES/snmp.timer $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-echo "snmp.timer" | sudo tee -a $GENERATED_SERVICE_FILE
-
-{% if include_system_telemetry == 'y' %}
-sudo cp $BUILD_TEMPLATES/telemetry.timer $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-echo "telemetry.timer" | sudo tee -a $GENERATED_SERVICE_FILE
-{% endif %}
-
-{% if include_mgmt_framework == 'y' %}
-sudo cp $BUILD_TEMPLATES/mgmt-framework.timer $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-echo "mgmt-framework.timer" | sudo tee -a $GENERATED_SERVICE_FILE
-{% endif %}
-
-sudo cp $BUILD_TEMPLATES/pmon.timer $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-echo "pmon.timer" | sudo tee -a $GENERATED_SERVICE_FILE
 
 sudo cp $BUILD_TEMPLATES/sonic.target $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
 sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable sonic.target

@@ -6,6 +6,7 @@ BindsTo=sonic.target
 After=sonic.target
 StartLimitIntervalSec=1200
 StartLimitBurst=3
+After=warmboot-finalizer.service
 
 [Service]
 ExecStartPre=/usr/bin/{{docker_container_name}}.sh start
