@@ -1,0 +1,25 @@
+From 1d0c7ba641dcd293c1f986652108d719d8d68d69 Mon Sep 17 00:00:00 2001
+From: Kebo Liu <kebol@nvidia.com>
+Date: Tue, 6 Jun 2023 15:25:39 +0800
+Subject: [PATCH] Add extra delay to hw-management service start
+
+Signed-off-by: Kebo Liu <kebol@nvidia.com>
+---
+ debian/hw-management.hw-management.service | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/debian/hw-management.hw-management.service b/debian/hw-management.hw-management.service
+index 639bd3c..e5b5679 100755
+--- a/debian/hw-management.hw-management.service
++++ b/debian/hw-management.hw-management.service
+@@ -6,6 +6,7 @@ Before=determine-reboot-cause.service system-health.service watchdog-control.ser
+ [Service]
+ Type=oneshot
+ RemainAfterExit=true
++ExecStartPre=-/bin/sleep 60
+ ExecStartPre=-/bin/sh -c "/usr/bin/hw-management-ready.sh"
+ ExecStart=/bin/sh -c "/usr/bin/hw-management.sh start"
+ ExecStop=/bin/sh -c "/usr/bin/hw-management.sh stop"
+-- 
+1.9.1
+
