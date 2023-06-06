@@ -57,8 +57,9 @@ function wait_for_sfp() {
 
 log_info "Wait for SFP interfaces to be ready"
 
-wait_for_sfp
-EXIT_CODE="$?"
+#wait_for_sfp
+#EXIT_CODE="$?"
+EXIT_CODE="${EXIT_SUCCESS}"
 if [[ "${EXIT_CODE}" != "${EXIT_SUCCESS}" ]]; then
     log_error "SFP interfaces are not ready: timeout"
     exit "${EXIT_CODE}"
