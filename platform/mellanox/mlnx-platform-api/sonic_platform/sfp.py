@@ -198,18 +198,6 @@ def deinitialize_sdk_handle(sdk_handle):
          return False
 
 
-class SdkHandleContext(object):
-    def __init__(self):
-        self.sdk_handle = None
-
-    def __enter__(self):
-        self.sdk_handle = initialize_sdk_handle()
-        return self.sdk_handle
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        deinitialize_sdk_handle(self.sdk_handle)
-
-
 class NvidiaSFPCommon(SfpOptoeBase):
     def __init__(self, sfp_index):
         super(NvidiaSFPCommon, self).__init__()

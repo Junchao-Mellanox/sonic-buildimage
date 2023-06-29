@@ -326,3 +326,8 @@ class TestChassis:
             exceptionRaised = True
 
         assert exceptionRaised
+
+    def test_parse_dmi(self):
+        chassis = Chassis()
+        content = chassis._parse_dmi(os.path.join(test_path, 'dmi_file'))
+        assert content.get('Version') == 'A4'
