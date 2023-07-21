@@ -40,6 +40,7 @@ class TestThermal:
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_cpu_thermal_count', mock.MagicMock(return_value=2))
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sodimm_thermal_count', mock.MagicMock(return_value=2))
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_platform_name', mock.MagicMock(return_value='x86_64-mlnx_msn2700-r0'))
+    @mock.patch('sonic_platform.device_data.DeviceDataManager.get_respin_version', mock.MagicMock(return_value=''))
     def test_chassis_thermal(self):
         from sonic_platform.thermal import THERMAL_NAMING_RULE
         os.path.exists = mock.MagicMock(return_value=True)

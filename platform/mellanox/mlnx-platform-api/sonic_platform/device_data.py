@@ -28,6 +28,13 @@ DEVICE_DATA = {
             }
         }
     },
+    'x86_64-mlnx_msn2700-r0-comex_respin': {
+        'thermal': {
+            "capability": {
+                "comex_amb": True
+            }
+        }
+    },
     'x86_64-mlnx_msn2740-r0': {
         'thermal': {
             "capability": {
@@ -172,7 +179,15 @@ class DeviceDataManager:
     @classmethod
     @utils.read_only_cache()
     def get_thermal_capability(cls):
-        platform_data = DEVICE_DATA.get(cls.get_platform_name(), None)
+        respin_version = cls.get_respin_version()
+        platform_name = cls.get_platform_name()
+        if respin_version != '':
+            platform_data = DEVICE_DATA.get(platform_name + '-' + respin_version, None)
+            if not platform_data:
+                platform_data = DEVICE_DATA.get(platform_name, None)
+        else:
+            platform_data = DEVICE_DATA.get(platform_name, None)
+
         if not platform_data:
             return None
 
@@ -216,3 +231,13 @@ class DeviceDataManager:
             # Currently, only fetching BIOS version is supported
             return ComponentCPLDSN2201.get_component_list()
         return ComponentCPLD.get_component_list()
+
+    @classmethod
+    @utils.read_only_cache()
+    def get_respin_version(cls):
+        platform_name = cls.get_platform_name()
+        if platform_name == 'x86_64-mlnx_msn2700-r0':
+            baseboard_product_name = utils.run_command(['dmidecode', '--string', 'baseboard-product-name'])
+            return '' if baseboard_product_name == 'VMOD0001' else 'comex_respin'
+
+        return ''
