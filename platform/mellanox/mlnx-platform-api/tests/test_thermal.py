@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,6 @@ class TestThermal:
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_platform_name', mock.MagicMock(return_value='x86_64-mlnx_msn2700-r0'))
     def test_chassis_thermal(self):
         from sonic_platform.thermal import THERMAL_NAMING_RULE
-        os.path.exists = mock.MagicMock(return_value=True)
         chassis = Chassis()
         thermal_list = chassis.get_all_thermals()
         assert thermal_list
@@ -123,9 +122,9 @@ class TestThermal:
                 thermal_name = rule['name']
                 assert thermal_name in thermal_dict
 
+    @mock.patch('os.path.exists', mock.MagicMock(return_value=True))
     def test_psu_thermal(self):
         from sonic_platform.thermal import initialize_psu_thermal, THERMAL_NAMING_RULE
-        os.path.exists = mock.MagicMock(return_value=True)
         presence_cb = mock.MagicMock(return_value=(True, ''))
         thermal_list = initialize_psu_thermal(0, presence_cb)
         assert len(thermal_list) == 1
@@ -147,9 +146,9 @@ class TestThermal:
         assert thermal.get_high_threshold() is None
         assert thermal.get_high_critical_threshold() is None
 
+    @mock.patch('os.path.exists', mock.MagicMock(return_value=True))
     def test_sfp_thermal(self):
         from sonic_platform.thermal import initialize_sfp_thermal, THERMAL_NAMING_RULE
-        os.path.exists = mock.MagicMock(return_value=True)
         thermal_list = initialize_sfp_thermal(0)
         assert len(thermal_list) == 1
         thermal = thermal_list[0]
@@ -162,47 +161,47 @@ class TestThermal:
         assert thermal.get_position_in_parent() == 1
         assert thermal.is_replaceable() == False
 
-    def test_get_temperature(self):
+    @mock.patch('sonic_platform.utils.read_float_from_file')
+    def test_get_temperature(self, mock_read):
         from sonic_platform.thermal import Thermal
-        from sonic_platform import utils
         thermal = Thermal('test', 'temp_file', None, None, 1)
-        utils.read_float_from_file = mock.MagicMock(return_value=35727)
+        mock_read.return_value = 35727
         assert thermal.get_temperature() == 35.727
 
-        utils.read_float_from_file = mock.MagicMock(return_value=0.0)
+        mock_read.return_value = 0.0
         assert thermal.get_temperature() is None
 
-        utils.read_float_from_file = mock.MagicMock(return_value=None)
+        mock_read.return_value = None
         assert thermal.get_temperature() is None
 
-    def test_get_high_threshold(self):
+    @mock.patch('sonic_platform.utils.read_float_from_file')
+    def test_get_high_threshold(self, mock_read):
         from sonic_platform.thermal import Thermal
-        from sonic_platform import utils
         thermal = Thermal('test', None, None, None, 1)
         assert thermal.get_high_threshold() is None
 
         thermal.high_threshold = 'high_th_file'
-        utils.read_float_from_file = mock.MagicMock(return_value=25833)
+        mock_read.return_value = 25833
         assert thermal.get_temperature() == 25.833
 
-        utils.read_float_from_file = mock.MagicMock(return_value=0.0)
+        mock_read.return_value = 0.0
         assert thermal.get_temperature() is None
 
-        utils.read_float_from_file = mock.MagicMock(return_value=None)
+        mock_read.return_value = None
         assert thermal.get_temperature() is None
 
-    def test_get_high_critical_threshold(self):
+    @mock.patch('sonic_platform.utils.read_float_from_file')
+    def test_get_high_critical_threshold(self, mock_read):
         from sonic_platform.thermal import Thermal
-        from sonic_platform import utils
         thermal = Thermal('test', None, None, None, 1)
         assert thermal.get_high_critical_threshold() is None
 
         thermal.high_critical_threshold = 'high_th_file'
-        utils.read_float_from_file = mock.MagicMock(return_value=120839)
+        mock_read.return_value = 120839
         assert thermal.get_high_critical_threshold() == 120.839
 
-        utils.read_float_from_file = mock.MagicMock(return_value=0.0)
+        mock_read.return_value = 0.0
         assert thermal.get_high_critical_threshold() is None
 
-        utils.read_float_from_file = mock.MagicMock(return_value=None)
+        mock_read.return_value = None
         assert thermal.get_high_critical_threshold() is None

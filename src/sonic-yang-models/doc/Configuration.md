@@ -34,6 +34,7 @@ Table of Contents
          * [FG_NHG_MEMBER](#fg_nhg_member)
          * [FG_NHG_PREFIX](#fg_nhg_prefix)
          * [FABRIC_MONITOR](#fabric-monitor)
+         * [FABRIC_PORT](#fabric-port)
          * [FLEX_COUNTER_TABLE](#flex_counter_table)
          * [Hash](#hash)
          * [IPv6 Link-local] (#ipv6-link-local)
@@ -47,9 +48,10 @@ Table of Contents
          * [Management VRF](#management-vrf)
          * [MAP_PFC_PRIORITY_TO_QUEUE](#map_pfc_priority_to_queue)
          * [MUX_CABLE](#mux_cable)
+         * [MUX_LINKMGR](#mux_linkmgr)
          * [NEIGH](#neigh)
          * [NTP Global Configuration](#ntp-global-configuration)
-         * [NTP and SYSLOG servers](#ntp-and-syslog-servers)
+         * [NTP Servers](#ntp-servers)
          * [Peer Switch](#peer-switch)
          * [Policer](#policer)
          * [Port](#port)
@@ -58,7 +60,8 @@ Table of Contents
          * [Scheduler](#scheduler)
          * [Port QoS Map](#port-qos-map)
          * [Queue](#queue)
-         * [Syslog Rate Limit](#syslog-rate-limit)
+         * [Syslog Global Configuration](#syslog-global-configuration)
+         * [Syslog Servers](#syslog-servers)
          * [Sflow](#sflow)
          * [Restapi](#restapi)
          * [System Port](#system-port)
@@ -77,6 +80,7 @@ Table of Contents
          * [LOGGER](#logger)
          * [WRED_PROFILE](#wred_profile)
          * [PASSWORD_HARDENING](#password_hardening)
+         * [SSH_SERVER](#ssh_server)  
          * [SYSTEM_DEFAULTS table](#systemdefaults-table)
          * [RADIUS](#radius)
          * [Static DNS](#static-dns)
@@ -420,7 +424,14 @@ group name and IP ranges in **BGP_PEER_RANGE** table.
         "ip_range": [
             "10.2.0.0/16"
         ]
-    }
+    },
+    "BGPSentinel": {
+        "name": "BGPSentinel",
+        "ip_range": [
+            "10.1.0.0/24"
+        ],
+        "src_address": "10.1.0.32"
+     }
   }
 }
 ```
@@ -927,7 +938,8 @@ instance is supported in SONiC.
         "bgp_adv_lo_prefix_as_128" : "true",
         "buffer_model": "traditional",
         "yang_config_validation": "disable",
-        "rack_mgmt_map": "dummy_value"
+        "rack_mgmt_map": "dummy_value",
+        "timezome": "Europe/Kiev"
     }
   }
 }
@@ -1061,6 +1073,24 @@ The FG_NHG_PREFIX table provides the FG_NHG_PREFIX for which FG behavior is desi
 
 ```
 
+### FABRIC_PORT
+```
+{
+"FABRIC_PORT": {
+    "Fabric0": {
+        "alias": "Fabric0",
+        "isolateStatus": "False",
+        "lanes": "0"
+    },
+    "Fabric1": {
+        "alias": "Fabric1",
+        "isolateStatus": "False",
+        "lanes": "1"
+    }
+  }
+}
+
+```
 
 ### MPLS_TC_TO_TC_MAP
 ```
@@ -1101,6 +1131,14 @@ The FG_NHG_PREFIX table provides the FG_NHG_PREFIX for which FG behavior is desi
 		"TUNNEL": {
 			"FLEX_COUNTER_STATUS": "enable",
 			"POLL_INTERVAL": "10000"
+		},
+		"WRED_ECN_QUEUE": {
+			"FLEX_COUNTER_STATUS": "enable",
+			"POLL_INTERVAL": "10000"
+		},
+		"WRED_ECN_PORT": {
+			"FLEX_COUNTER_STATUS": "enable",
+			"POLL_INTERVAL": "1000"
 		}
 	}
 }
@@ -1394,6 +1432,31 @@ The **MUX_CABLE** table is used for dualtor interface configuration. The `cable_
 }
 ```
 
+### MUX_LINKMGR
+The **MUX_LINKMGR** table is used for dualtor device configuration.
+```
+{
+    "MUX_LINKMGR": {
+        "LINK_PROBER": {
+            "interval_v4": "100",
+            "interval_v6": "1000",
+            "positive_signal_count": "1",
+            "negative_signal_count": "3",
+            "suspend_timer": "500",
+            "use_well_known_mac": "enabled",
+            "src_mac": "ToRMac",
+            "interval_pck_loss_count_update": "3"
+        },
+        "MUXLOGGER": {
+            "log_verbosity": "debug"
+        },
+        "SERVICE_MGMT": {
+            "kill_radv": "True"
+        }
+    }
+}
+```
+
 ### NEIGH
 
 The **NEIGH** table is used to keep track of resolved and static neighbors.
@@ -1463,7 +1526,7 @@ for that address.
 }
 ```
 
-### NTP and SYSLOG servers
+### NTP servers
 
 These information are configured in individual tables. Domain name or IP
 address of the server is used as object key. Currently there are no
@@ -1482,35 +1545,6 @@ attributes in those objects.
     "NTP_SERVER": {
         "23.92.29.245": {},
         "204.2.134.164": {}
-    }
-}
-```
-
-***Syslog server***
-```
-{
-    "SYSLOG_SERVER": {
-        "10.0.0.5": {},
-        "10.0.0.6": {},
-        "10.11.150.5": {}
-    },
-
-    "SYSLOG_SERVER" : {
-        "2.2.2.2": {
-            "source": "1.1.1.1",
-            "port": "514",
-            "vrf": "default"
-        },
-        "4.4.4.4": {
-            "source": "3.3.3.3",
-            "port": "514",
-            "vrf": "mgmt"
-        },
-        "2222::2222": {
-            "source": "1111::1111",
-            "port": "514",
-            "vrf": "Vrf-Data"
-        }
     }
 }
 ```
@@ -1776,7 +1810,8 @@ SFLOW
 
 | Field            | Description                                                                             | Mandatory   | Default   | Reference                                 |
 |------------------|-----------------------------------------------------------------------------------------|-------------|-----------|-------------------------------------------|
-| admin_state      | Global sflow admin state                                                                |             | down      |                                           |
+| admin_state      | Global sflow admin state                                                                |             | down      |    
+| sample_direction | Global sflow sample direction                                                           |             | rx        |                                        |
 | polling_interval | The interval within which sFlow data is collected and sent to the configured collectors |             | 20        |                                           |
 | agent_id         | Interface name                                                                          |             |           | PORT:name,PORTCHANNEL:name,MGMT_PORT:name, VLAN:name |
 
@@ -1788,7 +1823,7 @@ key - port
 | port        | Sets sflow session table attributes for either all interfaces or a specific Ethernet interface.                         |             |           | PORT:name   |
 | admin_state | Per port sflow admin state                                                                                              |             | up        |             |
 | sample_rate | Sets the packet sampling rate.  The rate is expressed as an integer N, where the intended sampling rate is 1/N packets. |             |           |             |
-
+| sample_direction| Per port sflow sample direction                                                                                               |             |   rx
 SFLOW_COLLECTOR
 
 key - name
@@ -1799,7 +1834,33 @@ key - name
 | collector_port | Destination L4 port of the Sflow collector                                              |             | 6343      |             |
 | collector_vrf  | Specify the Collector VRF. In this revision, it is either default VRF or Management VRF.|             |           |             |
 
-### Syslog Rate Limit
+### Syslog Global Configuration
+
+These configuration options are used to configure rsyslog utility and the way
+the system generates logs.
+
+***Configuration sample***
+```
+{
+    "SYSLOG_CONFIG": {
+        "GLOBAL": {
+            "rate_limit_interval": "5",
+            "rate_limit_burst": "100",
+            "format": "welf",
+            "welf_firewall_name": "bla",
+            "severity": "info"
+        }
+    }
+}
+```
+
+* `rate_limit_interval` - determines the amount of time that is being measured for rate limiting: `unsigned integer`
+* `rate_limit_burst` - defines the amount of messages, that have to occur in the time limit: `unsigned integer`
+* `format` - syslog log format: `{standard, welf}`
+* `welf_firewall_name` - WELF format firewall name: `string`
+* `severity` - global log severity: `{emerg, alert, crit, error, warning, notice, info, debug}`
+
+***Syslog Rate Limit***
 
 Host side configuration:
 
@@ -1830,6 +1891,50 @@ Container side configuration:
   }
 }
 ```
+
+### Syslog servers
+
+These information are configured in individual tables. Domain name or IP
+address of the server is used as object key. Each server can be configurable.
+
+***Configuration sample***
+```
+{
+    "SYSLOG_SERVER": {
+        "10.0.0.5": {},
+        "10.0.0.6": {},
+        "10.11.150.5": {}
+    },
+
+    "SYSLOG_SERVER" : {
+        "4.4.4.4": {
+            "source": "3.3.3.3",
+            "port": "514",
+            "vrf": "mgmt"
+        },
+        "2222::2222": {
+            "source": "1111::1111",
+            "port": "514",
+            "vrf": "Vrf-Data"
+        },
+        "somehostname": {
+            "filter": "include",
+            "filter_regex": "ololo",
+            "port": "514",
+            "protocol": "tcp",
+            "severity": "notice",
+            "vrf": "default"
+        }
+    }
+}
+```
+
+* `filter` - determines if syslog will include or exclude messages specified by regex: `{include, exclude}`
+* `filter_regex` - filter messages by this regex: `string`
+* `port` - network port to use to connect to remote server: `integer: 1..65535`
+* `protocol` - network protocol to use to connect to remote server: `{tcp, udp}`
+* `severity` - per-server log severity, overrifes global one: `{emerg, alert, crit, error, warning, notice, info, debug}`
+
 
 ### System Port
 Every port on the system requires a global representation, known as a System Port,
@@ -2272,6 +2377,25 @@ There are 4 classes
 }
 ```
 
+### SSH_SERVER
+
+In this table, we allow configuring ssh server global settings. This will feature includes 3 configurations:
+
+-   authentication_retries - number of login attepmts 1-100
+-   login_timeout - Timeout in seconds for login session for user to connect 1-600
+-   ports - Ssh port numbers - string of port numbers seperated by ','
+```
+{
+    "SSH_SERVER": {
+        "POLICIES":{
+            "authentication_retries": "6",
+            "login_timeout": "120",
+            "ports": "22"
+        }
+    }
+}
+```
+
 ### BREAKOUT_CFG
 
 This table is introduced as part of Dynamic Port Breakout(DPB) feature.
@@ -2384,6 +2508,21 @@ The DNS_NAMESERVER table introduces static DNS nameservers configuration.
 		"1.1.1.1": {},
 		"fe80:1000:2000:3000::1": {}
 	},
+}
+```
+
+### FIPS
+
+The FIPS table introduces FIPS  configuration.
+
+```json
+{
+    "FIPS": {
+        "global" : {
+            "enable": "true",
+            "enforce": "false"
+        }
+    }
 }
 ```
 

@@ -16,14 +16,21 @@ mkdir -p /etc/ssw /etc/snmp
 # Parse snmp.yml and insert the data in Config DB
 /usr/bin/snmp_yml_to_configdb.py
 
+ADD_PARAM=$(printf '%s {"NAMESPACE_COUNT":"%s"}' "-a" "$NAMESPACE_COUNT")
+
 SONIC_CFGGEN_ARGS=" \
     -d \
     -y /etc/sonic/sonic_version.yml \
     -t /usr/share/sonic/templates/sysDescription.j2,/etc/ssw/sysDescription \
     -t /usr/share/sonic/templates/snmpd.conf.j2,/etc/snmp/snmpd.conf \
+    $ADD_PARAM \
 "
 
 sonic-cfggen $SONIC_CFGGEN_ARGS
 
 mkdir -p /var/sonic
 echo "# Config files managed by sonic-config-engine" > /var/sonic/config_status
+
+TZ=$(cat /etc/timezone)
+rm -rf /etc/localtime
+ln -sf /usr/share/zoneinfo/$TZ /etc/localtime

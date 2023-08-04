@@ -444,12 +444,12 @@ def test_hardware_checker():
     assert checker._info['PSU 5'][HealthChecker.INFO_FIELD_OBJECT_STATUS] == HealthChecker.STATUS_NOT_OK
 
     assert 'PSU 6' in checker._info
-    assert checker._info['PSU 6'][HealthChecker.INFO_FIELD_OBJECT_MSG] == 'power of PSU 6 (101.0w) exceeds threshold (100.0w)'
+    assert checker._info['PSU 6'][HealthChecker.INFO_FIELD_OBJECT_MSG] == 'System power exceeds threshold (100.0w)'
     assert checker._info['PSU 6'][HealthChecker.INFO_FIELD_OBJECT_STATUS] == HealthChecker.STATUS_NOT_OK
 
     assert 'PSU 7' in checker._info
     assert checker._info['PSU 7'][HealthChecker.INFO_FIELD_OBJECT_STATUS] == HealthChecker.STATUS_NOT_OK
-    assert checker._info['PSU 7'][HealthChecker.INFO_FIELD_OBJECT_MSG] == 'power of PSU 7 exceeds threshold but power or power_critical_threshold is invalid'
+    assert checker._info['PSU 7'][HealthChecker.INFO_FIELD_OBJECT_MSG] == 'System power exceeds threshold but power_critical_threshold is invalid'
 
 
 def test_config():
@@ -665,6 +665,31 @@ def test_check_unit_status():
     sysmon = Sysmonitor()
     sysmon.check_unit_status('mock_bgp.service')
     assert 'mock_bgp.service' in sysmon.dnsrvs_name
+
+
+@patch('health_checker.sysmonitor.Sysmonitor.get_all_service_list', MagicMock(side_effect=[
+    ['mock_snmp.service', 'mock_bgp.service', 'mock_ns.service'],
+    ['mock_snmp.service', 'mock_ns.service']
+]))
+@patch('health_checker.sysmonitor.Sysmonitor.run_systemctl_show', MagicMock(return_value=mock_srv_props['mock_bgp.service']))
+@patch('health_checker.sysmonitor.Sysmonitor.get_app_ready_status', MagicMock(return_value=('Down','-','-')))
+@patch('health_checker.sysmonitor.Sysmonitor.post_unit_status', MagicMock())
+@patch('health_checker.sysmonitor.Sysmonitor.print_console_message', MagicMock())
+def test_system_status_up_after_service_removed():
+    sysmon = Sysmonitor()
+    sysmon.publish_system_status('UP')
+
+    sysmon.check_unit_status('mock_bgp.service')
+    assert 'mock_bgp.service' in sysmon.dnsrvs_name
+    result = swsscommon.SonicV2Connector.get(MockConnector, 0, "SYSTEM_READY|SYSTEM_STATE", 'Status')
+    print("system status result before service was removed from system: {}".format(result))
+    assert result == "DOWN"
+
+    sysmon.check_unit_status('mock_bgp.service')
+    assert 'mock_bgp.service' not in sysmon.dnsrvs_name
+    result = swsscommon.SonicV2Connector.get(MockConnector, 0, "SYSTEM_READY|SYSTEM_STATE", 'Status')
+    print("system status result after service was removed from system: {}".format(result))
+    assert result == "UP"
 
 
 @patch('health_checker.sysmonitor.Sysmonitor.get_all_service_list', MagicMock(return_value=['mock_snmp.service']))

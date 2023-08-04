@@ -157,9 +157,9 @@ function waitForAllInstanceDatabaseConfigJsonFilesReady()
             done
         fi
         # Delay a second to allow all instance database_config.json files to be completely generated and fully accessible.
-        # This delay is needed to make sure that the database_config.json files are correctly rendered from j2 template 
+        # This delay is needed to make sure that the database_config.json files are correctly rendered from j2 template
         # files ( renderning takes some time )
-        sleep 1 
+        sleep 1
     fi
 }
 {%- endif %}
@@ -240,7 +240,7 @@ function postStartAction()
             mv $WARM_DIR/dump.rdb $WARM_DIR/dump.rdb.old
         else
             # If there is a config_db.json dump file, load it.
-            if [ -r /etc/sonic/config_db$DEV.json ]; then		
+            if [ -r /etc/sonic/config_db$DEV.json ]; then
 
                 if [ -r /etc/sonic/init_cfg.json ]; then
                     $SONIC_CFGGEN -j /etc/sonic/init_cfg.json -j /etc/sonic/config_db$DEV.json --write-to-db
@@ -257,10 +257,18 @@ function postStartAction()
             $SONIC_DB_CLI CONFIG_DB SET "CONFIG_DB_INITIALIZED" "1"
         fi
 
-        if [[ -x /usr/local/bin/db_migrator.py ]]; then
-            # Migrate the DB to the latest schema version if needed
-            if [ -z "$DEV" ]; then
-                /usr/local/bin/db_migrator.py -o migrate
+        if [ -e /tmp/pending_config_migration ]; then
+            # this is first boot to a new image, config-setup execution is pending.
+            # For fast/cold reboot case, DB contains nothing at this point
+            # Call db_migrator after config-setup loads the config (from old config or minigraph)
+            echo "Delaying db_migrator until config migration is over"
+        else
+            # this is not a first time boot to a new image. Datbase container starts w/ old pre-existing config
+            if [[ -x /usr/local/bin/db_migrator.py ]]; then
+                # Migrate the DB to the latest schema version if needed
+                if [ -z "$DEV" ]; then
+                    /usr/local/bin/db_migrator.py -o migrate
+                fi
             fi
         fi
         # Add redis UDS to the redis group and give read/write access to the group
@@ -323,7 +331,7 @@ start() {
 
     {%- if sonic_asic_platform == "broadcom" %}
     {%- if docker_container_name == "syncd" %}
-    # Set the SYNCD_SHM_SIZE if this variable not defined    
+    # Set the SYNCD_SHM_SIZE if this variable not defined
     BRCM_PLATFORM_COMMON_DIR=/usr/share/sonic/device/x86_64-broadcom_common
     SYNCD_SHM_INI=$BRCM_PLATFORM_COMMON_DIR/syncd_shm.ini
 
@@ -545,14 +553,15 @@ start() {
 {%- if docker_container_name == "syncd" %}
         -v /var/log/mellanox:/var/log/mellanox:rw \
         -v mlnx_sdk_socket:/var/run/sx_sdk \
-        -v mlnx_sdk_ready:/tmp \
+        -v /tmp/nv-syncd-shared/:/tmp \
         -v /dev/shm:/dev/shm:rw \
         -v /var/log/sai_failure_dump:/var/log/sai_failure_dump:rw \
         -e SX_API_SOCKET_FILE=/var/run/sx_sdk/sx_api.sock \
 {%- elif docker_container_name == "pmon" %}
         -v /var/run/hw-management:/var/run/hw-management:rw \
         -v mlnx_sdk_socket:/var/run/sx_sdk \
-        -v mlnx_sdk_ready:/tmp \
+        -v /tmp/nv-syncd-shared/:/tmp \
+        -v /dev/shm:/dev/shm:rw \
         -e SX_API_SOCKET_FILE=/var/run/sx_sdk/sx_api.sock \
         -v /dev/shm:/dev/shm:rw \
 {%- else %}
@@ -578,7 +587,6 @@ start() {
 {%- endif -%}
 {%- if docker_container_name == "bgp" %}
         -v /etc/sonic/frr/$DEV:/etc/frr:rw \
-        -v /usr/share/sonic/scripts:/usr/share/sonic/scripts:ro \
 {%- endif %}
 {%- if docker_container_name == "database" %}
         $DB_OPT \
@@ -588,6 +596,7 @@ start() {
         -v /usr/share/sonic/device/$PLATFORM/$HWSKU/$DEV:/usr/share/sonic/hwsku:ro \
 {%- endif %}
         $REDIS_MNT \
+        -v /etc/fips/fips_enable:/etc/fips/fips_enable:ro \
         -v /usr/share/sonic/device/$PLATFORM:/usr/share/sonic/platform:ro \
         -v /usr/share/sonic/templates/rsyslog-container.conf.j2:/usr/share/sonic/templates/rsyslog-container.conf.j2:ro \
 {%- if sonic_asic_platform != "mellanox" %}
