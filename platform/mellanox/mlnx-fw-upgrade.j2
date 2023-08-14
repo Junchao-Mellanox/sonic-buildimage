@@ -149,7 +149,7 @@ function WaitForDevice() {
     local -i QUERY_RETRY_COUNT_MAX="10"
     local -i QUERY_RETRY_COUNT="0"
 
-    ${MFT_DIAGNOSIS_FLAGS} ${QUERY_CMD} > /dev/null
+    ${QUERY_CMD} > /dev/null
 
     while [[ ("${QUERY_RETRY_COUNT}" -lt "${QUERY_RETRY_COUNT_MAX}") && ("$?" -ne "${EXIT_SUCCESS}") ]]; do
         sleep 1s
