@@ -753,6 +753,16 @@ class Chassis(ChassisBase):
                 return 'fast-reboot'
         return None
 
+    def _wait_reboot_cause_ready(self):
+        max_wait_time = 45
+        while max_wait_time > 0:
+            if os.path.exists('/run/hw-management/system/reset_attr_ready'):
+                return True
+            time.sleep(5)
+            max_wait_time -= 5
+
+        return False
+
     def get_reboot_cause(self):
         """
         Retrieves the cause of the previous reboot
@@ -772,6 +782,10 @@ class Chassis(ChassisBase):
             reboot_cause = self._parse_warmfast_reboot_from_proc_cmdline()
             if reboot_cause:
                 return self.REBOOT_CAUSE_NON_HARDWARE, ''
+
+        if not self._wait_reboot_cause_ready():
+            logger.log_error("Hardware reboot cause is not ready")
+            return self.REBOOT_CAUSE_NON_HARDWARE, ''        
 
         if not self.reboot_cause_initialized:
             self.initialize_reboot_cause()
