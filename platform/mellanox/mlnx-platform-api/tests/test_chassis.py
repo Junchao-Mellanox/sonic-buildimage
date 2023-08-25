@@ -194,7 +194,7 @@ class TestChassis:
         assert status is True
         assert 'sfp' in event_dict and not event_dict['sfp']
 
-    @mock.patch('sonic_platform.chassis._wait_reboot_cause_ready', MagicMock(return_value=True))
+    @mock.patch('sonic_platform.chassis.Chassis._wait_reboot_cause_ready', MagicMock(return_value=True))
     def test_reboot_cause(self):
         from sonic_platform import utils
         from sonic_platform.chassis import REBOOT_CAUSE_ROOT
