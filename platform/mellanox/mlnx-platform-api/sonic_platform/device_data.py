@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020-2022 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ DEVICE_DATA = {
             }
         }
     },
-    'x86_64-mlnx_msn2700-r0-comex_respin': {
+    'x86_64-mlnx_msn2700-r0-a1': {
         'thermal': {
             "capability": {
                 "comex_amb": True
@@ -179,10 +179,10 @@ class DeviceDataManager:
     @classmethod
     @utils.read_only_cache()
     def get_thermal_capability(cls):
-        respin_version = cls.get_respin_version()
+        hardware_version = cls.get_hardware_version()
         platform_name = cls.get_platform_name()
-        if respin_version != '':
-            platform_data = DEVICE_DATA.get(platform_name + '-' + respin_version, None)
+        if hardware_version != '':
+            platform_data = DEVICE_DATA.get(platform_name + '-' + hardware_version, None)
             if not platform_data:
                 platform_data = DEVICE_DATA.get(platform_name, None)
         else:
@@ -234,10 +234,10 @@ class DeviceDataManager:
 
     @classmethod
     @utils.read_only_cache()
-    def get_respin_version(cls):
+    def get_hardware_version(cls):
         platform_name = cls.get_platform_name()
         if platform_name == 'x86_64-mlnx_msn2700-r0':
             baseboard_product_name = utils.run_command(['dmidecode', '--string', 'baseboard-product-name'])
-            return '' if baseboard_product_name == 'VMOD0001' else 'comex_respin'
+            return '' if baseboard_product_name == 'VMOD0001' else 'a1'
 
         return ''

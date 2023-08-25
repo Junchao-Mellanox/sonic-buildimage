@@ -3,11 +3,11 @@
 SENSORS_FILE_PREFIX="/usr/share/sonic/platform/sensors"
 
 function get_sensor_conf_path() {
-    RESPIN_VERSION=$(python3 -c "import sonic_platform;print(sonic_platform.device_data.DeviceDataManager.get_respin_version())")
-    if [[ "$RESPIN_VERSION" == "" ]]; then
+    VERSION=$(python3 -c "import sonic_platform;print(sonic_platform.device_data.DeviceDataManager.get_hardware_version())")
+    if [[ "$VERSION" == "" ]]; then
         echo "${SENSORS_FILE_PREFIX}.conf"
     else
-        echo "${SENSORS_FILE_PREFIX}_${RESPIN_VERSION}.conf"
+        echo "${SENSORS_FILE_PREFIX}_${VERSION}.conf"
     fi
 }
 

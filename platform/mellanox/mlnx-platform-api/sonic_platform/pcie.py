@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2021 - 2023 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,5 +81,5 @@ class Pcie(PcieUtil):
 
     def __init__(self, platform_path):
         PcieUtil.__init__(self, platform_path)
-        self._conf_rev = device_data.DeviceDataManager.get_respin_version()
+        self._conf_rev = device_data.DeviceDataManager.get_hardware_version()
         self._create_device_id_to_bus_map()
