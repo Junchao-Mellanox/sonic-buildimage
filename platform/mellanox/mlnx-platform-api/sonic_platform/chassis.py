@@ -757,7 +757,7 @@ class Chassis(ChassisBase):
     def _wait_reboot_cause_ready(self):
         max_wait_time = 45
         while max_wait_time > 0:
-            if os.path.exists('/run/hw-management/config/reset_attr_ready'):
+            if utils.read_int_from_file('/run/hw-management/config/reset_attr_ready', log_func=None) == 1:
                 return True
             time.sleep(5)
             max_wait_time -= 5
