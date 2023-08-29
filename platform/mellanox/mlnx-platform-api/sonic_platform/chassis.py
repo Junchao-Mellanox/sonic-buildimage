@@ -26,6 +26,7 @@ try:
     from sonic_platform_base.chassis_base import ChassisBase
     from sonic_py_common.logger import Logger
     import os
+    import time
     from functools import reduce
     from .utils import extract_RJ45_ports_index
     from . import utils
