@@ -1,6 +1,7 @@
 import os
 import sys
 import syslog
+from swsscommon import swsscommon
 
 """
 Logging functionality for SONiC Python applications
@@ -26,20 +27,23 @@ class Logger(object):
     DEFAULT_LOG_FACILITY = LOG_FACILITY_USER
     DEFAULT_LOG_OPTION = LOG_OPTION_NDELAY
 
-    def __init__(self, log_identifier=None, log_facility=DEFAULT_LOG_FACILITY, log_option=DEFAULT_LOG_OPTION):
-        self._syslog = syslog
-
+    def __init__(self, log_identifier=None, log_facility=DEFAULT_LOG_FACILITY, log_option=DEFAULT_LOG_OPTION, enable_set_log_level_on_fly=False):
         if log_identifier is None:
             log_identifier = os.path.basename(sys.argv[0])
 
         # Initialize syslog
-        self._syslog.openlog(ident=log_identifier, logoption=log_option, facility=log_facility)
+        syslog.openlog(ident=log_identifier, logoption=log_option, facility=log_facility)
 
+        self._log = swsscommon.Logger.getInstance()
         # Set the default minimum log priority to LOG_PRIORITY_NOTICE
         self.set_min_log_priority(self.LOG_PRIORITY_NOTICE)
+        if enable_set_log_level_on_fly:
+            # Performance warning: linkToDbNative will potentially create a new thread.
+            # The thread listens to CONFIG DB for log level changes.
+            swsscommon.Logger.getInstance().linkToDbNative(log_identifier, 'NOTICE')
 
     def __del__(self):
-        self._syslog.closelog()
+        syslog.closelog()
 
     #
     # Methods for setting minimum log priority
@@ -53,7 +57,7 @@ class Logger(object):
         Args:
             priority: The minimum priority at which to log messages
         """
-        self._min_log_priority = priority
+        self._log.setMinPrio(priority)
 
     def set_min_log_priority_error(self):
         """
@@ -90,9 +94,9 @@ class Logger(object):
     #
 
     def log(self, priority, msg, also_print_to_console=False):
-        if self._min_log_priority >= priority:
+        if self._log.getMinPrio() >= priority:
             # Send message to syslog
-            self._syslog.syslog(priority, msg)
+            self._log.write(priority, msg)
 
             # Send message to console
             if also_print_to_console:
