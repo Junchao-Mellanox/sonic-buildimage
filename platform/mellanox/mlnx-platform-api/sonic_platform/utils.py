@@ -100,15 +100,15 @@ def read_float_from_file(file_path, default=0.0, raise_exception=False, log_func
     return read_from_file(file_path=file_path, target_type=float, default=default, raise_exception=raise_exception, log_func=log_func)
 
 
-def _key_value_converter(content):
+def _key_value_converter(content, deli):
     ret = {}
     for line in content.splitlines():
-        k,v = line.split(':')
+        k,v = line.split(deli)
         ret[k.strip()] = v.strip()
     return ret
 
 
-def read_key_value_file(file_path, default={}, raise_exception=False, log_func=logger.log_error):
+def read_key_value_file(file_path, default={}, raise_exception=False, log_func=logger.log_error, deli=':'):
     """Read file content and parse the content to a dict. The file content should like:
        key1:value1
        key2:value2
@@ -119,7 +119,7 @@ def read_key_value_file(file_path, default={}, raise_exception=False, log_func=l
         raise_exception (bool, optional): If exception should be raised or hiden. Defaults to False.
         log_func (optional): logger function.. Defaults to logger.log_error.
     """
-    return read_from_file(file_path=file_path, target_type=_key_value_converter, default=default, raise_exception=raise_exception, log_func=log_func)
+    return read_from_file(file_path=file_path, target_type=lambda x: _key_value_converter(x, deli), default=default, raise_exception=raise_exception, log_func=log_func)
 
 
 def write_file(file_path, content, raise_exception=False, log_func=logger.log_error):

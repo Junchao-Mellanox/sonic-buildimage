@@ -26,6 +26,7 @@ try:
     import ctypes
     import subprocess
     import os
+    import threading
     from sonic_py_common.logger import Logger
     from sonic_py_common.general import check_output_pipe
     from . import utils
@@ -246,6 +247,18 @@ class SFP(NvidiaSFPCommon):
     SFP_MLNX_ERROR_BIT_PCIE_POWER_SLOT_EXCEEDED = 0x00080000
     SFP_MLNX_ERROR_BIT_RESERVED = 0x80000000
 
+    STATE_NOT_PRESENT = NotPresent()
+    STATE_PENDING_READY = PendingModuleReady()
+    STATE_FINAL = FinalState()
+    STATE_ERR = ErrorState()
+
+    EVENT_MODULE_IN = 1
+    EVENT_MODULE_OUT = 2
+    EVENT_MODULE_ERR = 3
+    EVENT_MODULE_READY = 255
+
+    changed_sfp = {}
+
     def __init__(self, sfp_index, sfp_type=None, slot_id=0, linecard_port_count=0, lc_name=None):
         super(SFP, self).__init__(sfp_index)
         self._sfp_type = sfp_type
@@ -265,6 +278,10 @@ class SFP(NvidiaSFPCommon):
 
         self.slot_id = slot_id
         self._sfp_type_str = None
+        self._ready_timer = None
+        self._present_fd = None
+        self._hw_present_fd = None
+        self._power_good_fd = None
 
     def reinit(self):
         """
@@ -590,6 +607,114 @@ class SFP(NvidiaSFPCommon):
                 self._xcvr_api.get_tx_fault = self.get_tx_fault
         return self._xcvr_api
 
+    def change_state(self, new_state):
+        print(f'changing from {self.current_state} to {new_state}')
+        self.current_state = new_state
+        self.current_state.on_enter(self)
+
+    def on_event(self, event):
+        self.current_state.on_event(self, event)
+
+    def is_hw_present(self):
+        return utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_present') == 1
+
+    def is_power_on(self):
+        return utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/power_on') == 1
+
+    def set_power(self, value):
+        utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/power_on', value)
+
+    def need_hw_reset(self):
+        return utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset') == 1
+
+    def do_hw_reset(self):
+        utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset', 0)
+        self._ready_timer = threading.Timer(3, self.notify_module_ready)
+        self._ready_timer.start()
+
+    def notify_module_ready(self):
+        self.on_event(SFP.EVENT_MODULE_READY)
+
+    def is_sw_control(self):
+        pass # TODO implmentation this
+
+    def get_poll_fds(self):
+        if DeviceDataManager.is_independent_mode():
+            if self.is_sw_control(self):
+                if not self._hw_present_fd:
+                    self._hw_present_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_present', 'r')
+                if not self._power_good_fd:
+                    self._power_good_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/power_good', 'r')
+                return {self._hw_present_fd: self.handle_hw_present_change,
+                        self._power_good_fd: self.handle_power_good_change}
+
+        if not self._present_fd:
+            self._present_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_present', 'r')
+        return {self._present_fd: self.handle_present_change}
+
+    def handle_hw_present_change(self):
+        hw_present = self.is_hw_present()
+        self.on_event(SFP.EVENT_MODULE_IN if hw_present else SFP.EVENT_MODULE_OUT)
+
+    def handle_present_change(self):
+        # TODO: error?
+        SFP.changed_sfp['sfp'][self.sdk_index] = utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/present')
+
+    def handle_power_good_change(self):
+        pass
+
+    def start_module_detection(self):
+        self.change_state(SFP.STATE_PENDING_READY)
+
+    def cancel_ready_timer(self):
+        if self._ready_timer:
+            self._ready_timer.cancel()
+
+    def on_sfp_ready(self):
+        eeprom_path = self._get_eeprom_path()
+        sfp_type = self._get_sfp_type_str(eeprom_path)
+        if sfp_type == SFP_TYPE_CMIS:
+            if self.check_power_limit():
+                self.update_i2c_frequence()
+                # TODO: update state db
+                SFP.changed_sfp['sfp'][self.sdk_index] = 1
+            else:
+                utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset', 1)
+                self.set_power(0)
+                # TODO: set it to ERROR status
+                # TODO: update to state db
+        else:
+            utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/control', 0)
+            # TODO update state db
+            SFP.changed_sfp['sfp'][self.sdk_index] = 1
+
+    def on_sfp_error(self):
+        pass # TODO implmentation this
+
+    def on_sfp_out(self):
+        SFP.changed_sfp['sfp'][self.sdk_index] = 0
+        pass # TODO implmentation this
+
+    def is_independent(self):
+        pass # TODO implmentation this
+
+    def check_power_limit(self):
+        cage_power_limit = utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/power_limit')
+        module_power = int(self.read_eeprom(201, 1)[0]) # TODO: make it better
+        return module_power <= cage_power_limit
+
+    def update_i2c_frequence(self):
+        if utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/frequency_support'):
+            max_frequence = int(self.read_eeprom(2, 1)[0]) & 0x6 # TODO: make it better
+            if max_frequence not in (0, 1):
+                pass # TODO: log error, error status or forget it?
+            utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/frequency', max_frequence)
+
+    @classmethod
+    def get_changed_sfps(cls):
+        result = cls.changed_sfp.copy()
+        cls.changed_sfp.clear()
+        return result
 
 class RJ45Port(NvidiaSFPCommon):
     """class derived from SFP, representing RJ45 ports"""
@@ -828,3 +953,77 @@ class RJ45Port(NvidiaSFPCommon):
         :return:
         """
         return
+
+
+class State:
+    def on_enter(self, sfp):
+        pass
+
+    def on_event(self, sfp, event):
+        pass
+
+
+class PendingSfpReady(State):
+    def on_enter(self, sfp):
+        if not sfp.is_hw_present():
+            sfp.change_state(SFP.STATE_NOT_PRESENT)
+            return
+        if not sfp.is_power_on():
+            sfp.set_power(1)
+        if sfp.need_hw_reset():
+            sfp.do_hw_reset()
+
+    def on_event(self, sfp, event):
+        if event == SFP.EVENT_MODULE_READY:
+            sfp.change_state(SFP.STATE_FINAL)
+        elif event == SFP.EVENT_MODULE_OUT:
+            sfp.cancel_ready_timer()
+            sfp.change_state(SFP.STATE_NOT_PRESENT)
+        elif event == SFP.EVENT_MODULE_ERR:
+            sfp.cancel_ready_timer()
+            sfp.change_state(SFP.STATE_ERR)
+
+    def __str__(self):
+        return 'Pending SFP Ready'
+
+
+class FinalState(State):
+    def on_enter(self, sfp):
+        sfp.on_sfp_ready()
+
+    def __str__(self):
+        return 'Final'
+
+    def on_event(self, sfp, event):
+        if event == SFP.EVENT_MODULE_OUT:
+            sfp.change_state(SFP.STATE_NOT_PRESENT)
+        elif event == SFP.EVENT_MODULE_ERR:
+            sfp.change_state(SFP.STATE_ERR)
+
+
+class NotPresent(State):
+    def on_enter(self, sfp):
+        sfp.on_sfp_out()
+
+    def on_event(self, sfp, event):
+        if event == SFP.EVENT_MODULE_IN:
+            sfp.change_state(SFP.STATE_PENDING_READY)
+        elif event == SFP.EVENT_MODULE_ERR:
+            sfp.change_state(SFP.STATE_ERR)
+
+    def __str__(self):
+        return 'Not Present'
+
+
+class ErrorState(State):
+    def on_enter(self, sfp):
+        sfp.on_sfp_error()
+
+    def on_event(self, sfp, event):
+        if event == SFP.EVENT_MODULE_IN:
+            sfp.change_state(SFP.STATE_PENDING_READY)
+        elif event == SFP.EVENT_MODULE_OUT:
+            sfp.change_state(SFP.STATE_NOT_PRESENT)
+
+    def __str__(self):
+        return 'Error'
