@@ -26,7 +26,9 @@ try:
     import ctypes
     import subprocess
     import os
+    import queue
     import threading
+    import time
     from sonic_py_common.logger import Logger
     from sonic_py_common.general import check_output_pipe
     from . import utils
@@ -153,6 +155,10 @@ SFP_TYPE_SFF8636 = 'sff8636'
 
 # SFP stderr
 SFP_EEPROM_NOT_AVAILABLE = 'Input/output error'
+
+# independent mode
+FW_CONTROL = 0
+SW_CONTROL = 1
 
 # SFP errors that will block eeprom accessing
 SDK_SFP_BLOCKING_ERRORS = [
@@ -290,6 +296,8 @@ class SFP(NvidiaSFPCommon):
         'sfp': {},
         'sfp_error': {}
     }
+    wait_sfp_ready_task = None
+    chassis_instance = None
 
     def __init__(self, sfp_index, sfp_type=None, slot_id=0, linecard_port_count=0, lc_name=None):
         super(SFP, self).__init__(sfp_index)
@@ -310,10 +318,10 @@ class SFP(NvidiaSFPCommon):
 
         self.slot_id = slot_id
         self._sfp_type_str = None
-        self._ready_timer = None
         self._present_fd = None
         self._hw_present_fd = None
         self._power_good_fd = None
+        self._control_by = None
 
     def reinit(self):
         """
@@ -661,18 +669,14 @@ class SFP(NvidiaSFPCommon):
 
     def do_hw_reset(self):
         utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset', 0)
-        self._ready_timer = threading.Timer(3, self.notify_module_ready) # TODO: not thread safe
-        self._ready_timer.start()
+        SFP.wait_sfp_ready_task.add_item(self.sdk_index)
 
-    def notify_module_ready(self):
-        self.on_event(SFP.EVENT_MODULE_READY) # TODO: not thread safe
-
-    def is_sw_control(self):
-        pass # TODO implmentation this
+    def notify_sfp_ready(self):
+        self.on_event(SFP.EVENT_MODULE_READY)
 
     def get_poll_fds(self):
         if DeviceDataManager.is_independent_mode():
-            if self.is_sw_control(self):
+            if self._control_by == SW_CONTROL:
                 if not self._hw_present_fd:
                     self._hw_present_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_present', 'r')
                 if not self._power_good_fd:
@@ -683,6 +687,21 @@ class SFP(NvidiaSFPCommon):
         if not self._present_fd:
             self._present_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/present', 'r')
         return {self._present_fd: self.handle_present_change}
+
+    def _update_polling(self, control_type):
+        if control_type != self._control_by:
+            if self._control_by is not None:
+                SFP.chassis_instance.unregister_sfp_polling(self)
+                if self._control_by == SW_CONTROL:
+                    self._hw_present_fd.close()
+                    self._hw_present_fd = None
+                    self._power_good_fd.close()
+                    self._power_good_fd = None
+                else:
+                    self._present_fd.close()
+                    self._present_fd = None
+            self._control_by = control_type
+            SFP.chassis_instance.register_sfp_polling(self)
 
     def handle_hw_present_change(self):
         self.on_event(SFP.EVENT_MODULE_IN if self.is_hw_present() else SFP.EVENT_MODULE_OUT)
@@ -732,26 +751,33 @@ class SFP(NvidiaSFPCommon):
             # TODO: retry?
             pass
         if sfp_type == SFP_TYPE_CMIS:
+            # software control
             if self.check_power_limit():
                 self.update_i2c_frequence()
                 # TODO: update state db
                 SFP.changed_sfp['sfp'][self.sdk_index] = str(SFP.EVENT_MODULE_IN)
+                self._update_polling(SW_CONTROL)
             else:
                 utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset', 1)
                 self.set_power(0)
                 # TODO: set it to ERROR status
                 # TODO: update to state db
         else:
+            # firmware control
             utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/control', 0)
             # TODO update state db
             SFP.changed_sfp['sfp'][self.sdk_index] = str(SFP.EVENT_MODULE_IN)
+            self._update_polling(FW_CONTROL)
 
     def on_sfp_error(self):
+        if self._control_by is None:
+            self._update_polling(SW_CONTROL)
         pass # TODO implmentation this
 
     def on_sfp_out(self):
         SFP.changed_sfp['sfp'][self.sdk_index] = str(SFP.EVENT_MODULE_OUT)
-        pass # TODO implmentation this
+        if self._control_by is None:
+            self._update_polling(SW_CONTROL)
 
     def is_independent(self):
         pass # TODO implmentation this
@@ -775,6 +801,22 @@ class SFP(NvidiaSFPCommon):
         cls.changed_sfp['sfp'].clear()
         cls.changed_sfp['sfp_error'].clear()
         return result
+
+    @classmethod
+    def get_num_changed_sfp(cls):
+        return len(cls.changed_sfp['sfp']) + len(cls.changed_sfp['sfp_error'])
+
+    @classmethod
+    def start_wait_sfp_ready_task(cls):
+        cls.wait_sfp_ready_task = WaitSfpReadyTask()
+        cls.wait_sfp_ready_task.start()
+
+    @classmethod
+    def stop_wait_sfp_ready_task(cls):
+        if cls.wait_sfp_ready_task:
+            cls.wait_sfp_ready_task._running = False
+            cls.wait_sfp_ready_task.add_item(-1) # wake up the task
+
 
 class RJ45Port(NvidiaSFPCommon):
     """class derived from SFP, representing RJ45 ports"""
@@ -1090,3 +1132,38 @@ class ErrorState(State):
 
     def __str__(self):
         return 'Error'
+
+
+class WaitSfpReadyTask(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self._input_queue = queue.Queue()
+        self.output_queue = queue.Queue()
+        self._running = False
+        self._wait_dict = {}
+
+    def add_item(self, sfp_index):
+        self._input_queue.put_nowait((sfp_index, time.time() + 3))
+
+    def _fetch_input_items(self):
+        if self._running and not self._wait_dict:
+            item = self._input_queue.get(block=True)
+            self._wait_dict[item[0]] = item[1]
+
+        while self._running:
+            try:
+                item = self._input_queue.get_nowait()
+                self._wait_dict[item[0]] = item[1]
+            except queue.Empty:
+                break
+
+    def run(self):
+        self._running = True
+        while self._running:
+            self._fetch_input_items()
+            now = time.time()
+            for sfp_index in list(self._wait_dict):
+                if now >= self._wait_dict[sfp_index]:
+                    del self._wait_dict[sfp_index]
+                    self.output_queue.put_nowait(sfp_index)
+            time.sleep(1)
