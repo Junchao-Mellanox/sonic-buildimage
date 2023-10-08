@@ -154,6 +154,35 @@ SFP_TYPE_SFF8636 = 'sff8636'
 # SFP stderr
 SFP_EEPROM_NOT_AVAILABLE = 'Input/output error'
 
+# SFP errors that will block eeprom accessing
+SDK_SFP_BLOCKING_ERRORS = [
+    0x2, # SFP.SFP_ERROR_BIT_I2C_STUCK,
+    0x3, # SFP.SFP_ERROR_BIT_BAD_EEPROM,
+    0x5, # SFP.SFP_ERROR_BIT_UNSUPPORTED_CABLE,
+    0x6, # SFP.SFP_ERROR_BIT_HIGH_TEMP,
+    0x7, # SFP.SFP_ERROR_BIT_BAD_CABLE
+]
+
+SDK_ERRORS_TO_ERROR_BITS = {
+    0x0: SfpOptoeBase.SFP_ERROR_BIT_POWER_BUDGET_EXCEEDED,
+    0x1: SfpOptoeBase.SFP_MLNX_ERROR_BIT_LONGRANGE_NON_MLNX_CABLE,
+    0x2: SfpOptoeBase.SFP_ERROR_BIT_I2C_STUCK,
+    0x3: SfpOptoeBase.SFP_ERROR_BIT_BAD_EEPROM,
+    0x4: SfpOptoeBase.SFP_MLNX_ERROR_BIT_ENFORCE_PART_NUMBER_LIST,
+    0x5: SfpOptoeBase.SFP_ERROR_BIT_UNSUPPORTED_CABLE,
+    0x6: SfpOptoeBase.SFP_ERROR_BIT_HIGH_TEMP,
+    0x7: SfpOptoeBase.SFP_ERROR_BIT_BAD_CABLE,
+    0x8: SfpOptoeBase.SFP_MLNX_ERROR_BIT_PMD_TYPE_NOT_ENABLED,
+    0xc: SfpOptoeBase.SFP_MLNX_ERROR_BIT_PCIE_POWER_SLOT_EXCEEDED
+}
+
+SDK_ERRORS_TO_DESCRIPTION = {
+    0x1: SfpOptoeBase.SFP_MLNX_ERROR_DESCRIPTION_LONGRANGE_NON_MLNX_CABLE,
+    0x4: SfpOptoeBase.SFP_MLNX_ERROR_DESCRIPTION_ENFORCE_PART_NUMBER_LIST,
+    0x8: SfpOptoeBase.SFP_MLNX_ERROR_DESCRIPTION_PMD_TYPE_NOT_ENABLED,
+    0xc: SfpOptoeBase.SFP_MLNX_ERROR_DESCRIPTION_PCIE_POWER_SLOT_EXCEEDED
+}
+
 # SFP EEPROM limited bytes
 limited_eeprom = {
     SFP_TYPE_CMIS: {
@@ -248,16 +277,19 @@ class SFP(NvidiaSFPCommon):
     SFP_MLNX_ERROR_BIT_RESERVED = 0x80000000
 
     STATE_NOT_PRESENT = NotPresent()
-    STATE_PENDING_READY = PendingModuleReady()
-    STATE_FINAL = FinalState()
+    STATE_PENDING_READY = PendingSfpReady()
+    STATE_FINAL = ReadyState()
     STATE_ERR = ErrorState()
 
+    EVENT_MODULE_OUT = 0
     EVENT_MODULE_IN = 1
-    EVENT_MODULE_OUT = 2
-    EVENT_MODULE_ERR = 3
+    EVENT_MODULE_ERR = 2
     EVENT_MODULE_READY = 255
 
-    changed_sfp = {}
+    changed_sfp = {
+        'sfp': {},
+        'sfp_error': {}
+    }
 
     def __init__(self, sfp_index, sfp_type=None, slot_id=0, linecard_port_count=0, lc_name=None):
         super(SFP, self).__init__(sfp_index)
@@ -629,11 +661,11 @@ class SFP(NvidiaSFPCommon):
 
     def do_hw_reset(self):
         utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset', 0)
-        self._ready_timer = threading.Timer(3, self.notify_module_ready)
+        self._ready_timer = threading.Timer(3, self.notify_module_ready) # TODO: not thread safe
         self._ready_timer.start()
 
     def notify_module_ready(self):
-        self.on_event(SFP.EVENT_MODULE_READY)
+        self.on_event(SFP.EVENT_MODULE_READY) # TODO: not thread safe
 
     def is_sw_control(self):
         pass # TODO implmentation this
@@ -649,16 +681,39 @@ class SFP(NvidiaSFPCommon):
                         self._power_good_fd: self.handle_power_good_change}
 
         if not self._present_fd:
-            self._present_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_present', 'r')
+            self._present_fd = open(f'/sys/module/sx_core/asic0/module{self.sdk_index}/present', 'r')
         return {self._present_fd: self.handle_present_change}
 
     def handle_hw_present_change(self):
-        hw_present = self.is_hw_present()
-        self.on_event(SFP.EVENT_MODULE_IN if hw_present else SFP.EVENT_MODULE_OUT)
+        self.on_event(SFP.EVENT_MODULE_IN if self.is_hw_present() else SFP.EVENT_MODULE_OUT)
 
     def handle_present_change(self):
-        # TODO: error?
-        SFP.changed_sfp['sfp'][self.sdk_index] = utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/present')
+        present = utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/present')
+        if not DeviceDataManager.is_independent_mode():
+            if present in (SFP.EVENT_MODULE_IN, SFP.EVENT_MODULE_OUT):
+                SFP.changed_sfp['sfp'][self.sdk_index] = present
+            else:
+                error_type = utils.read_int_from_file(SFP_SDK_MODULE_SYSFS_ROOT_TEMPLATE.format(self.sdk_index) + SFP_SYSFS_STATUS_ERROR)
+                sfp_state_bits = SDK_ERRORS_TO_ERROR_BITS.get(error_type)
+                if sfp_state_bits is None:
+                    logger.log_error(f"Unrecognized error {error_type} detected on port {self.sdk_index}")
+                    return
+                if error_type in SDK_SFP_BLOCKING_ERRORS:
+                    # In SFP at error status case, need to overwrite the sfp_state with the exact error code
+                    sfp_state_bits |= SFP.SFP_ERROR_BIT_BLOCKING
+
+                # An error should be always set along with 'INSERTED'
+                sfp_state_bits |= SFP.SFP_STATUS_BIT_INSERTED
+
+                # For vendor specific errors, the description should be returned as well
+                error_description = SDK_ERRORS_TO_DESCRIPTION.get(error_type)
+                SFP.changed_sfp['sfp'][self.sdk_index] = str(sfp_state_bits)
+                SFP.changed_sfp['sfp_error'][self.sdk_index] = error_description
+        else:
+            if present in (SFP.EVENT_MODULE_IN, SFP.EVENT_MODULE_OUT):
+                self.on_event(SFP.EVENT_MODULE_IN if present else SFP.EVENT_MODULE_OUT)
+            else:
+                self.on_event(SFP.EVENT_MODULE_ERR)
 
     def handle_power_good_change(self):
         pass
@@ -673,11 +728,14 @@ class SFP(NvidiaSFPCommon):
     def on_sfp_ready(self):
         eeprom_path = self._get_eeprom_path()
         sfp_type = self._get_sfp_type_str(eeprom_path)
+        if sfp_type is None:
+            # TODO: retry?
+            pass
         if sfp_type == SFP_TYPE_CMIS:
             if self.check_power_limit():
                 self.update_i2c_frequence()
                 # TODO: update state db
-                SFP.changed_sfp['sfp'][self.sdk_index] = 1
+                SFP.changed_sfp['sfp'][self.sdk_index] = str(SFP.EVENT_MODULE_IN)
             else:
                 utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/hw_reset', 1)
                 self.set_power(0)
@@ -686,13 +744,13 @@ class SFP(NvidiaSFPCommon):
         else:
             utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/control', 0)
             # TODO update state db
-            SFP.changed_sfp['sfp'][self.sdk_index] = 1
+            SFP.changed_sfp['sfp'][self.sdk_index] = str(SFP.EVENT_MODULE_IN)
 
     def on_sfp_error(self):
         pass # TODO implmentation this
 
     def on_sfp_out(self):
-        SFP.changed_sfp['sfp'][self.sdk_index] = 0
+        SFP.changed_sfp['sfp'][self.sdk_index] = str(SFP.EVENT_MODULE_OUT)
         pass # TODO implmentation this
 
     def is_independent(self):
@@ -707,13 +765,15 @@ class SFP(NvidiaSFPCommon):
         if utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/frequency_support'):
             max_frequence = int(self.read_eeprom(2, 1)[0]) & 0x6 # TODO: make it better
             if max_frequence not in (0, 1):
-                pass # TODO: log error, error status or forget it?
+                logger.log_error(f'Invalid max i2c frequence value {max_frequence}')
+                return
             utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/frequency', max_frequence)
 
     @classmethod
     def get_changed_sfps(cls):
         result = cls.changed_sfp.copy()
-        cls.changed_sfp.clear()
+        cls.changed_sfp['sfp'].clear()
+        cls.changed_sfp['sfp_error'].clear()
         return result
 
 class RJ45Port(NvidiaSFPCommon):
@@ -959,6 +1019,9 @@ class State:
     def on_enter(self, sfp):
         pass
 
+    def on_leave(self, sfp):
+        pass
+
     def on_event(self, sfp, event):
         pass
 
@@ -987,7 +1050,7 @@ class PendingSfpReady(State):
         return 'Pending SFP Ready'
 
 
-class FinalState(State):
+class ReadyState(State):
     def on_enter(self, sfp):
         sfp.on_sfp_ready()
 

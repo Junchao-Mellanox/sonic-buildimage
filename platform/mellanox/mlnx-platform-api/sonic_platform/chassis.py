@@ -115,7 +115,6 @@ class Chassis(ChassisBase):
         #    - True: All SFP modules have been created
         #
         self.sfp_initialized_count = 0
-        self.sfp_event = None
         self.reboot_cause_initialized = False
 
         self.sfp_module = None
@@ -124,15 +123,13 @@ class Chassis(ChassisBase):
         self._RJ45_port_inited = False
         self._RJ45_port_list = None
 
-        self._static_detection_done = False
+        self._init_sfp_event = False
         self._poll_obj = None
+        self._sfp_event_cbs = None
 
         logger.log_info("Chassis loaded successfully")
 
     def __del__(self):
-        if self.sfp_event:
-            self.sfp_event.deinitialize()
-
         if self._sfp_list:
             if self.sfp_module.SFP.shared_sdk_handle:
                 self.sfp_module.deinitialize_sdk_handle(self.sfp_module.SFP.shared_sdk_handle)
@@ -363,49 +360,6 @@ class Chassis(ChassisBase):
             return SfpBase.SFP_PORT_TYPE_BIT_RJ45
         raise NotImplementedError
 
-    def get_change_event_dependent(self, timeout):
-        pass
-
-    def get_change_event_independent(self, timeout):
-        if not self._static_detection_done:
-            self._poll_obj = select.poll()
-            if DeviceDataManager.is_independent_mode():
-                for sfp in self._sfp_list:
-                    self._poll_obj.register(sfp.get_status_fd(), select.POLLERR | select.POLLPRI) # TODO: don't register FD here
-                    self._poll_obj.register(sfp.get_power_good_fd(), select.POLLERR | select.POLLPRI)
-                    self.status_fd_to_module[sfp.get_status_fd().fileno()] = sfp
-                    self.power_good_fd_to_module[sfp.get_power_good_fd().fileno()] = sfp
-                    sfp.start_module_detection()
-
-                max_wait_time = 5
-                while len(self.sfp_module.SFP.get_changed_sfps()) != len(self._sfp_list):
-                    time.sleep(1)
-                    max_wait_time -= 1
-                    if max_wait_time == 0:
-                        # TODO: print error
-                        break
-
-            for sfp in self._sfp_list:
-                for fd, cb in sfp.get_poll_fds().items():
-                    self._poll_obj.register(fd, select.POLLERR | select.POLLPRI)
-                    self._sfp_event_cbs[fd.fileno()] = cb
-            self._static_detection_done = True
-
-        wait_for_ever = (timeout == 0)
-        begin = time.time()
-        while True:
-            fds_events = self._poll_obj.poll(timeout)
-            if not fds_events and not wait_for_ever:
-                elapse = time.time() - begin
-                if elapse * 1000 > timeout:
-                    break
-
-            for fd, _ in fds_events:
-                if fd in self._sfp_event_cbs:
-                    self._sfp_event_cbs[fd]()
-
-        return True, self.sfp_module.SFP.get_changed_sfps()
-
     def get_change_event(self, timeout=0):
         """
         Returns a nested dictionary containing all devices which have
@@ -430,86 +384,41 @@ class Chassis(ChassisBase):
                       has been inserted and sfp 11 has been removed.
         """
         self.initialize_sfp()
-        if not DeviceDataManager.is_independent_mode():
-            return self.get_change_event_dependent(timeout)
-        else:
-            return self.get_change_event_independent(timeout)
-
-        if not self._static_detection_done:
+        if not self._init_sfp_event:
             self._poll_obj = select.poll()
-            for sfp in self._sfp_list:
-                self._poll_obj.register(sfp.get_status_fd(), select.POLLERR | select.POLLPRI)
-                self._poll_obj.register(sfp.get_power_good_fd(), select.POLLERR | select.POLLPRI)
-                self.status_fd_to_module[sfp.get_status_fd().fileno()] = sfp
-                self.power_good_fd_to_module[sfp.get_power_good_fd().fileno()] = sfp
-                sfp.start_module_detection()
-
-            ready_set = set()
-            while len(ready_set) != len(self._sfp_list):
+            self._sfp_event_cbs = {}
+            if DeviceDataManager.is_independent_mode():
                 for sfp in self._sfp_list:
-                    if sfp.current_state in (sfp.STATE_FINAL, sfp.STATE_NOT_PRESENT, sfp.STATE_ERROR):
-                        ready_set.add(sfp)
-                time.sleep(1)
+                    sfp.start_module_detection()
 
-            self._static_detection_done = True
+                max_wait_time = 5
+                while len(self.sfp_module.SFP.get_changed_sfps()) != len(self._sfp_list):
+                    time.sleep(1)
+                    max_wait_time -= 1
+                    if max_wait_time == 0:
+                        # TODO: print error
+                        break
+
+            for sfp in self._sfp_list:
+                for fd, cb in sfp.get_poll_fds().items():
+                    self._poll_obj.register(fd, select.POLLERR | select.POLLPRI)
+                    self._sfp_event_cbs[fd.fileno()] = cb
+            self._init_sfp_event = True
 
         wait_for_ever = (timeout == 0)
+        begin = time.time()
         while True:
             fds_events = self._poll_obj.poll(timeout)
             if not fds_events and not wait_for_ever:
-                return True, {'sfp': {}}
-
-            for fd, event in fds_events:
-                if fd in self.status_fd_to_module:
-                    sfp = self.status_fd_to_module[fd]
-                elif fd in self.power_good_fd_to_module:
-                    sfp = self.power_good_fd_to_module[fd]
-                else:
-                    continue
-                sfp.on_event(event)
-
-            # wait for sfp stable and return
-
-
-
-        # select timeout should be no more than 1000ms to ensure fast shutdown flow
-        select_timeout = 1000.0 if timeout >= 1000 else float(timeout)
-        port_dict = {}
-        error_dict = {}
-        begin = time.time()
-        while True:
-            status = self.sfp_event.check_sfp_status(port_dict, error_dict, select_timeout)
-            if bool(port_dict):
-                break
-
-            if not wait_for_ever:
                 elapse = time.time() - begin
                 if elapse * 1000 > timeout:
                     break
 
-        if status:
-            if port_dict:
-                self.reinit_sfps(port_dict)
-            result_dict = {'sfp': port_dict}
-            if error_dict:
-                result_dict['sfp_error'] = error_dict
-            return True, result_dict
-        else:
-            return True, {'sfp': {}}
+            for fd, _ in fds_events:
+                if fd in self._sfp_event_cbs:
+                    self._sfp_event_cbs[fd]()
 
-    def reinit_sfps(self, port_dict):
-        """
-        Re-initialize SFP if there is any newly inserted SFPs
-        :param port_dict: SFP event data
-        :return:
-        """
-        from . import sfp
-        for index, status in port_dict.items():
-            if status == sfp.SFP_STATUS_INSERTED:
-                try:
-                    self._sfp_list[index - 1].reinit()
-                except Exception as e:
-                    logger.log_error("Fail to re-initialize SFP {} - {}".format(index, repr(e)))
+        return True, self.sfp_module.SFP.get_changed_sfps()
 
     def _show_capabilities(self):
         """
