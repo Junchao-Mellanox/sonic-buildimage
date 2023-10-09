@@ -207,6 +207,21 @@ program_console_speed()
     systemctl daemon-reload
 }
 
+handle_platform_specific_config()
+{
+    # Mellanox MSN2700 platforms need a special rsyslog configuration to 
+    # eliminate some non-functional error log.
+    # Copy this configuration file to /etc/rsyslog.d/ during first time boot.
+    platform_name=$1
+    src_file_name=/usr/share/sonic/device/$platform_name/01_mlnx_2700_syslog.conf
+    target_file_name=/etc/rsyslog.d/01_mlnx_2700_syslog.conf
+
+    if [ "$platform_name" = "x86_64-mlnx_msn2700a1-r0" ] || [ "$platform_name" = "x86_64-mlnx_msn2700-r0" ]; then
+        if [ -e $src_file_name ]; then
+            cp $src_file_name $target_file_name
+        fi
+    fi
+}
 
 #### Begin Main Body ####
 
@@ -395,6 +410,9 @@ if [ -f $FIRST_BOOT_FILE ]; then
 
     # Kdump tools configuration
     [ -f /etc/default/kdump-tools ] && sed -i -e "s/__PLATFORM__/$platform/g" /etc/default/kdump-tools
+
+    # Handle platform specific config
+    handle_platform_specific_config $platform
 
     firsttime_exit
 fi
