@@ -73,6 +73,21 @@ def get_group_and_process_list(process_file):
     return group_list, process_list
 
 
+def is_warm_reboot():
+    """
+    Checks if a warm reboot is going on
+    """
+    try:
+        state_db_connector = swsscommon.DBConnector("STATE_DB", 0)
+        tbl = swsscommon.Table(state_db_connector, 'WARM_RESTART_ENABLE_TABLE')
+        (status, value) = tbl.hget('system', 'enable')
+        if status and value == 'true':
+            return True
+    except RuntimeError as e:
+        syslog.syslog(syslog.LOG_ERR, "Check warm reboot status failed: {}".format(e))
+    return False
+
+
 def generate_alerting_message(process_name, status, dead_minutes):
     """
     @summary: If a critical process was not running, this function will determine it resides in host
@@ -209,6 +224,10 @@ def main(argv):
             epoch_time = time.time()
             elapsed_secs = epoch_time - process_heart_beat_info[process]["last_heart_beat"]
             if elapsed_secs >= ALERTING_INTERVAL_SECS:
+                if is_warm_reboot() and process == "orchagent":
+                    # Orchagent will set to frozen during warm reboot.
+                    continue
+
                 elapsed_mins = elapsed_secs // 60
                 generate_alerting_message(process, "stuck", elapsed_mins)
 
