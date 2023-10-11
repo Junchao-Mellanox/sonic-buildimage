@@ -299,3 +299,28 @@ class TestSfp:
         assert not sfp.set_lpmode(True)
         assert sfp.set_lpmode(False)
         assert not sfp.set_lpmode(False)
+
+    @mock.patch('sonic_platform.utils.read_int_from_file')
+    @mock.patch('sonic_platform.device_data.DeviceDataManager.is_independent_mode')
+    @mock.patch('sonic_platform.utils.DbUtils.get_db_instance')
+    def test_is_sw_control(self, mock_get_db, mock_mode, mock_read):
+        sfp = SFP(0)
+        mock_mode.return_value = False
+        assert not sfp.is_sw_control()
+        mock_mode.return_value = True
+
+        mock_db = mock.MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get = mock.MagicMock(return_value=None)
+        with pytest.raises(Exception):
+            sfp.is_sw_control()
+
+        mock_read.return_value = 0
+        mock_db.get.return_value = 'FW_CONTROL'
+        assert not sfp.is_sw_control()
+        mock_read.return_value = 1
+        mock_db.get.return_value = 'SW_CONTROL'
+        assert sfp.is_sw_control()
+        mock_read.return_value = 0
+        with pytest.raises(Exception):
+            sfp.is_sw_control()

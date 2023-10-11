@@ -139,6 +139,7 @@ SFP_SYSFS_STATUS = 'status'
 SFP_SYSFS_STATUS_ERROR = 'statuserror'
 SFP_SYSFS_PRESENT = 'present'
 SFP_SYSFS_RESET = 'reset'
+SFP_SYSFS_HWRESET = 'hw_reset'
 SFP_SYSFS_POWER_MODE = 'power_mode'
 SFP_SYSFS_POWER_MODE_POLICY = 'power_mode_policy'
 POWER_MODE_POLICY_HIGH = 1
@@ -791,6 +792,21 @@ class SFP(NvidiaSFPCommon):
                 self._xcvr_api.get_rx_los = self.get_rx_los
                 self._xcvr_api.get_tx_fault = self.get_tx_fault
         return self._xcvr_api
+
+    def is_sw_control(self):
+        if not DeviceDataManager.is_independent_mode():
+            return False
+
+        db = utils.DbUtils.get_db_instance('STATE_DB')
+        control_type = db.get('STATE_DB', f'TRANSCEIVER_MODULES_MGMT|{self.sdk_index}', 'control_type')
+        control_file_value = utils.read_int_from_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/control')
+
+        if control_type == 'SW_CONTROL' and control_file_value == 1:
+            return True
+        elif control_type == 'FW_CONTROL' and control_file_value == 0:
+            return False
+        else:
+            raise Exception(f'Module {self.sdk_index} is in initialization, please retry later')
 
 
 class RJ45Port(NvidiaSFPCommon):
