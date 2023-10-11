@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020-2021 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,8 @@ PORT_TYPE_KEY = "port_type"
 RJ45_PORT_TYPE = "RJ45"
 
 logger = Logger()
+
+db_instances = None
 
 
 def read_from_file(file_path, target_type, default='', raise_exception=False, log_func=logger.log_error):
@@ -100,15 +102,15 @@ def read_float_from_file(file_path, default=0.0, raise_exception=False, log_func
     return read_from_file(file_path=file_path, target_type=float, default=default, raise_exception=raise_exception, log_func=log_func)
 
 
-def _key_value_converter(content):
+def _key_value_converter(content, delimeter):
     ret = {}
     for line in content.splitlines():
-        k,v = line.split(':')
+        k,v = line.split(delimeter)
         ret[k.strip()] = v.strip()
     return ret
 
 
-def read_key_value_file(file_path, default={}, raise_exception=False, log_func=logger.log_error):
+def read_key_value_file(file_path, default={}, raise_exception=False, log_func=logger.log_error, delimeter=':'):
     """Read file content and parse the content to a dict. The file content should like:
        key1:value1
        key2:value2
@@ -119,7 +121,8 @@ def read_key_value_file(file_path, default={}, raise_exception=False, log_func=l
         raise_exception (bool, optional): If exception should be raised or hiden. Defaults to False.
         log_func (optional): logger function.. Defaults to logger.log_error.
     """
-    return read_from_file(file_path=file_path, target_type=_key_value_converter, default=default, raise_exception=raise_exception, log_func=log_func)
+    converter = lambda content: _key_value_converter(content, delimeter)
+    return read_from_file(file_path=file_path, target_type=converter, default=default, raise_exception=raise_exception, log_func=log_func)
 
 
 def write_file(file_path, content, raise_exception=False, log_func=logger.log_error):
@@ -285,3 +288,22 @@ def wait_until(predict, timeout, interval=1, *args, **kwargs):
         time.sleep(interval)
         timeout -= interval
     return False
+
+
+class DbUtils:
+    db_instances = {}
+
+    @classmethod
+    def get_db_instance(cls, db_name, **kargs):
+        try:
+            if db_name not in cls.db_instances:
+                from sonic_py_common import multi_asic
+                from swsscommon.swsscommon import SonicV2Connector
+                namespace = multi_asic.get_current_namespace()
+                db = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+                db.connect(db_name)
+                cls.db_instances[db_name] = db
+            return cls.db_instances[db_name]
+        except Exception as e:
+            logger.log_error(f'Failed to get DB instance for DB {db_name} - {e}')
+            raise e
