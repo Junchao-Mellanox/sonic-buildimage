@@ -4,7 +4,7 @@
 	branch = 202305
 [submodule "sonic-linux-kernel"]
 	path = src/sonic-linux-kernel
-	url = https://github.com/nvidia-sonic/sonic-linux-kernel
+	url = https://github.com/Junchao-Mellanox/sonic-linux-kernel
 	branch = 202305
 [submodule "sonic-sairedis"]
 	path = src/sonic-sairedis
