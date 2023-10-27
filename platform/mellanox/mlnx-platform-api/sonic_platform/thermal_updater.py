@@ -29,6 +29,7 @@ except ImportError:
     # For unit test only
     from unittest import mock
     hw_management_independent_mode_update = mock.MagicMock()
+    hw_management_independent_mode_update.module_data_set_module_counter = mock.MagicMock()
     hw_management_independent_mode_update.thermal_data_set_asic = mock.MagicMock()
     hw_management_independent_mode_update.thermal_data_set_module = mock.MagicMock()
     hw_management_independent_mode_update.thermal_data_clean_asic = mock.MagicMock()
@@ -97,6 +98,7 @@ class ThermalUpdater:
         utils.write_file('/run/hw-management/config/suspend', 1 if suspend else 0)
 
     def clean_thermal_data(self):
+        hw_management_independent_mode_update.module_data_set_module_counter(len(self._sfp_list))
         hw_management_independent_mode_update.thermal_data_clean_asic(0)
         for sfp in self._sfp_list:
             hw_management_independent_mode_update.thermal_data_clean_module(
