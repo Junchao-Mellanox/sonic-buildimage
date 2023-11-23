@@ -34,16 +34,30 @@ class Logger(object):
         # Initialize syslog
         syslog.openlog(ident=log_identifier, logoption=log_option, facility=log_facility)
 
-        self._log = swsscommon.Logger.getInstance()
+        self._log = self.get_log_instance()
         # Set the default minimum log priority to LOG_PRIORITY_NOTICE
         self.set_min_log_priority(self.LOG_PRIORITY_NOTICE)
         if enable_set_log_level_on_fly:
             # Performance warning: linkToDbNative will potentially create a new thread.
             # The thread listens to CONFIG DB for log level changes.
-            swsscommon.Logger.getInstance().linkToDbNative(log_identifier, 'NOTICE')
+            self._log.linkToDbNative(log_identifier, 'NOTICE')
 
     def __del__(self):
         syslog.closelog()
+
+    def get_log_instance(self):
+        if hasattr(swsscommon, 'Logger'):
+            return swsscommon.Logger.getInstance()
+        else:
+            # Workaround for unit test. In some SONiC Python package, it mocked swsscommon lib for unit test purpose, but it does not contain
+            # Logger class. To make those unit test happy, here provides a MagicMock object.
+            if sys.version_info.major == 3:
+                from unittest import mock
+            else:
+                # Expect the 'mock' package for python 2
+                # https://pypi.python.org/pypi/mock
+                import mock
+            return mock.MagicMock()
 
     #
     # Methods for setting minimum log priority
