@@ -1,4 +1,12 @@
-from unittest import mock
+import sys
+
+if sys.version_info.major == 3:
+    from unittest import mock
+else:
+    # Expect the 'mock' package for python 2
+    # https://pypi.python.org/pypi/mock
+    import mock
+
 from sonic_py_common import logger
 
 
