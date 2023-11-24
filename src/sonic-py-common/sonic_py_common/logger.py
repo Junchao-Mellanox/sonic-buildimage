@@ -57,7 +57,9 @@ class Logger(object):
                 # Expect the 'mock' package for python 2
                 # https://pypi.python.org/pypi/mock
                 import mock
-            return mock.MagicMock()
+            instance = mock.MagicMock()
+            instance.getMinPrio.return_value = self.LOG_PRIORITY_NOTICE
+            return instance
 
     #
     # Methods for setting minimum log priority
