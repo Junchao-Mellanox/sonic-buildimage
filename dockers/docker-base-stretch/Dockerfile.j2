@@ -113,6 +113,7 @@ RUN apt-get clean -y                     && \
     apt-get autoremove -y                && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
+COPY ["etc/rsyslog.conf", "/etc/rsyslog.conf"]
 COPY ["etc/rsyslog.d/*", "/etc/rsyslog.d/"]
 COPY ["root/.vimrc", "/root/.vimrc"]
 
