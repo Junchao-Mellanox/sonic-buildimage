@@ -50,6 +50,7 @@ RUN apt-get -y install \
     rsyslog            \
     less
 
+COPY ["etc/rsyslog.conf", "/etc/rsyslog.conf"]
 COPY ["etc/rsyslog.d/*", "/etc/rsyslog.d/"]
 COPY ["root/.vimrc", "/root/.vimrc"]
 
