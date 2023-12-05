@@ -14,17 +14,8 @@
 #################
 
 $ModLoad imuxsock # provides support for local system logging
-
 {% set gconf = (SYSLOG_CONFIG | d({})).get('GLOBAL', {}) -%}
-{% set rate_limit_interval = gconf.get('rate_limit_interval') %}
-{% set rate_limit_burst = gconf.get('rate_limit_burst') %}
 
-{% if rate_limit_interval is not none %}
-$SystemLogRateLimitInterval {{ rate_limit_interval }}
-{% endif %}
-{% if rate_limit_burst is not none %}
-$SystemLogRateLimitBurst {{ rate_limit_burst }}
-{% endif %}
 
 $ModLoad imklog   # provides kernel logging support
 #$ModLoad immark  # provides --MARK-- message capability
