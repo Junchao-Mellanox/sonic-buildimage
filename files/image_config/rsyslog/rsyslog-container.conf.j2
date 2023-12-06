@@ -28,12 +28,12 @@ $ModLoad imuxsock # provides support for local system logging
 
 {% if rate_limit_interval is defined %}
 $SystemLogRateLimitInterval {{ rate_limit_interval }}
-{% else %}	
+{% else %}
 $SystemLogRateLimitInterval 300
 {% endif %}
 {% if rate_limit_burst is defined %}
 $SystemLogRateLimitBurst {{ rate_limit_burst }}
-{% else %}	
+{% else %}
 $SystemLogRateLimitBurst 20000
 {% endif %}
 
