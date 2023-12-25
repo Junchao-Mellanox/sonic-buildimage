@@ -17,11 +17,9 @@
 import os
 import time
 
-from sonic_py_common.logger import Logger
+from .logger import logger
 from . import utils
 from . import device_data
-
-logger = Logger()
 
 
 class Led(object):

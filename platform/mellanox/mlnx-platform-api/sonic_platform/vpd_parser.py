@@ -16,11 +16,10 @@
 #
 
 import os
-from sonic_py_common.logger import Logger
 
 from . import utils
+from .logger import logger
 
-logger = Logger()
 SN_VPD_FIELD = "SN_VPD_FIELD"
 PN_VPD_FIELD = "PN_VPD_FIELD"
 REV_VPD_FIELD = "REV_VPD_FIELD"

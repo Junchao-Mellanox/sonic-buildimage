@@ -22,10 +22,8 @@ from sonic_py_common.logger import Logger
 
 from . import utils
 from .device_data import DeviceDataManager
+from .logger import logger
 from .vpd_parser import VpdParser
-
-# Global logger class instance
-logger = Logger()
 
 
 class Module(ModuleBase):
