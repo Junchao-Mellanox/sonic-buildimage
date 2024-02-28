@@ -28,7 +28,7 @@ try:
     from functools import reduce
     from .utils import extract_RJ45_ports_index
     from . import utils
-    from .logger import logger
+    from .logger_for_watchdog import LoggerForWatchdog
     from .device_data import DeviceDataManager
     import re
     import queue
@@ -70,6 +70,9 @@ REBOOT_TYPE_KEXEC_FILE = "/proc/cmdline"
 REBOOT_TYPE_KEXEC_PATTERN_WARM = ".*SONIC_BOOT_TYPE=(warm|fastfast).*"
 REBOOT_TYPE_KEXEC_PATTERN_FAST = ".*SONIC_BOOT_TYPE=(fast|fast-reboot).*"
 
+# Global logger class instance - will be set later with the set on the fly flag
+# watchdogutil will call it with the flag set to False through Platform
+logger = None
 
 class Chassis(ChassisBase):
     """Platform-specific Chassis class"""
@@ -82,7 +85,7 @@ class Chassis(ChassisBase):
 
     chassis_instance = None
 
-    def __init__(self):
+    def __init__(self, enable_set_log_level_on_fly):
         super(Chassis, self).__init__()
 
         # Initialize DMI data
@@ -133,6 +136,10 @@ class Chassis(ChassisBase):
         self.modules_mgmt_thread = threading.Thread()
         self.modules_changes_queue = queue.Queue()
         self.modules_mgmt_task_stopping_event = threading.Event()
+
+        # set Global logger class instance
+        global logger
+        logger = LoggerForWatchdog(enable_set_log_level_on_fly).get_logger()
 
         logger.log_info("Chassis loaded successfully")
 
