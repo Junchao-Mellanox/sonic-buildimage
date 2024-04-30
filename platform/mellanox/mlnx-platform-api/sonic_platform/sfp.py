@@ -1443,7 +1443,7 @@ class SFP(NvidiaSFPCommon):
     @classmethod
     def action_on_powered(cls, sfp):
         if not sfp.get_power_good():
-            logger.log_info(f'SFP {sfp.sdk_index} is not in power good state')
+            logger.log_error(f'SFP {sfp.sdk_index} is not in power good state')
             sfp.on_event(EVENT_POWER_BAD)
             return
         
