@@ -3,6 +3,13 @@ from logging.handlers import SysLogHandler
 import os
 import socket
 import sys
+from . import logger_config_handler
+
+# customize python logging to support notice logger
+logging.NOTICE = logging.INFO + 1
+logging.addLevelName(logging.NOTICE, "NOTICE")
+SysLogHandler.priority_map['NOTICE'] = 'notice'
+
 
 class SysLogger:
     """
@@ -10,9 +17,14 @@ class SysLogger:
     """
 
     DEFAULT_LOG_FACILITY = SysLogHandler.LOG_USER
-    DEFAULT_LOG_LEVEL = SysLogHandler.LOG_NOTICE
+    DEFAULT_LOG_LEVEL = logging.NOTICE
+    
+    config_handler = logger_config_handler.LoggerConfigHandler()
 
-    def __init__(self, log_identifier=None, log_facility=DEFAULT_LOG_FACILITY, log_level=DEFAULT_LOG_LEVEL):
+    def __init__(self, log_identifier=None,
+                       log_facility=DEFAULT_LOG_FACILITY,
+                       log_level=DEFAULT_LOG_LEVEL,
+                       enable_config_thread=False):
         if log_identifier is None:
             log_identifier = os.path.basename(sys.argv[0])
 
@@ -29,6 +41,57 @@ class SysLogger:
         self.logger.addHandler(handler)
 
         self.set_min_log_priority(log_level)
+        
+        SysLogger.config_handler.register(self, log_identifier, self.log_priority_to_str(log_level))
+        
+        if enable_config_thread:
+            SysLogger.config_handler.start()
+    
+    def log_priority_to_str(self, priority):
+        """Convert log priority to string.
+
+        Args:
+            priority (int): log priority.
+
+        Returns:
+            str: log priority in string.
+        """
+        if priority == logging.NOTICE:
+            return 'NOTICE'
+        elif priority == logging.INFO:
+            return 'INFO'
+        elif priority == logging.DEBUG:
+            return 'DEBUG'
+        elif priority == logging.WARNING:
+            return 'WARN'
+        elif priority == logging.ERROR:
+            return 'ERROR'
+        else:
+            self.log_error(f'Invalid log priority: {priority}')
+            return 'NOTICE'
+    
+    def log_priority_from_str(self, priority_in_str):
+        """Convert log priority from string.
+
+        Args:
+            priority_in_str (str): log priority in string.
+
+        Returns:
+            _type_: log priority.
+        """
+        if priority_in_str == 'DEBUG':
+            return logging.DEBUG
+        elif priority_in_str == 'INFO':
+            return logging.INFO
+        elif priority_in_str == 'NOTICE':
+            return logging.NOTICE
+        elif priority_in_str == 'WARN':
+            return logging.WARNING
+        elif priority_in_str == 'ERROR':
+            return logging.ERROR
+        else:
+            self.log_error(f'Invalid log priority string: {priority_in_str}')
+            return logging.NOTICE
 
     def set_min_log_priority(self, priority):
         """
@@ -53,7 +116,7 @@ class SysLogger:
         self.log(logging.WARNING, msg, also_print_to_console)
 
     def log_notice(self, msg, also_print_to_console=False):
-        self.log(logging.INFO, msg, also_print_to_console)
+        self.log(logging.NOTICE, msg, also_print_to_console)
 
     def log_info(self, msg, also_print_to_console=False):
         self.log(logging.INFO, msg, also_print_to_console)
