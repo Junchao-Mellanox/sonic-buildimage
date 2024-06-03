@@ -26,14 +26,14 @@ class Logger(object):
 
     DEFAULT_LOG_FACILITY = LOG_FACILITY_USER
     DEFAULT_LOG_OPTION = LOG_OPTION_NDELAY
-    
+
     config_handler = logger_config_handler.LoggerConfigHandler()
 
     def __init__(self, log_identifier=None,
                        log_facility=DEFAULT_LOG_FACILITY,
                        log_option=DEFAULT_LOG_OPTION,
                        log_level=LOG_PRIORITY_NOTICE,
-                       enable_config_thread=False):
+                       enable_runtime_config=False):
         self._syslog = syslog
 
         if log_identifier is None:
@@ -44,11 +44,9 @@ class Logger(object):
 
         # Set the default log priority
         self.set_min_log_priority(log_level)
-        
-        Logger.config_handler.register(self, log_identifier, self.log_priority_to_str(log_level))
-        
-        if enable_config_thread:
-            Logger.config_handler.start()
+
+        if enable_runtime_config:
+            Logger.config_handler.register(self, log_identifier)
 
     def __del__(self):
         self._syslog.closelog()
@@ -75,7 +73,7 @@ class Logger(object):
         else:
             self.log_error(f'Invalid log priority: {priority}')
             return 'NOTICE'
-    
+
     def log_priority_from_str(self, priority_in_str):
         """Convert log priority from string.
 
@@ -98,7 +96,10 @@ class Logger(object):
         else:
             self.log_error(f'Invalid log priority string: {priority_in_str}')
             return Logger.LOG_PRIORITY_NOTICE
-        
+
+    def get_min_log_priority_in_str(self):
+        return self.log_priority_to_str(self._min_log_priority)
+
     #
     # Methods for setting minimum log priority
     #

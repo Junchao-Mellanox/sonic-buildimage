@@ -18,13 +18,13 @@ class SysLogger:
 
     DEFAULT_LOG_FACILITY = SysLogHandler.LOG_USER
     DEFAULT_LOG_LEVEL = logging.NOTICE
-    
+
     config_handler = logger_config_handler.LoggerConfigHandler()
 
     def __init__(self, log_identifier=None,
                        log_facility=DEFAULT_LOG_FACILITY,
                        log_level=DEFAULT_LOG_LEVEL,
-                       enable_config_thread=False):
+                       enable_runtime_config=False):
         if log_identifier is None:
             log_identifier = os.path.basename(sys.argv[0])
 
@@ -41,12 +41,10 @@ class SysLogger:
         self.logger.addHandler(handler)
 
         self.set_min_log_priority(log_level)
-        
-        SysLogger.config_handler.register(self, log_identifier, self.log_priority_to_str(log_level))
-        
-        if enable_config_thread:
-            SysLogger.config_handler.start()
-    
+
+        if enable_runtime_config:
+            SysLogger.config_handler.register(self, log_identifier)
+
     def log_priority_to_str(self, priority):
         """Convert log priority to string.
 
@@ -69,7 +67,7 @@ class SysLogger:
         else:
             self.log_error(f'Invalid log priority: {priority}')
             return 'NOTICE'
-    
+
     def log_priority_from_str(self, priority_in_str):
         """Convert log priority from string.
 
@@ -92,6 +90,9 @@ class SysLogger:
         else:
             self.log_error(f'Invalid log priority string: {priority_in_str}')
             return logging.NOTICE
+        
+    def get_min_log_priority_in_str(self):
+        return self.log_priority_to_str(self._min_log_level)
 
     def set_min_log_priority(self, priority):
         """
