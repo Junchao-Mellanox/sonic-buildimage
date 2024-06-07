@@ -4,6 +4,11 @@ import os
 import socket
 import sys
 
+# customize python logging to support notice logger
+logging.NOTICE = logging.INFO + 1
+logging.addLevelName(logging.NOTICE, "NOTICE")
+SysLogHandler.priority_map['NOTICE'] = 'notice'
+
 CONFIG_DB = 'CONFIG_DB'
 FIELD_LOG_LEVEL = 'LOGLEVEL'
 FIELD_REQUIRE_REFRESH = 'require_manual_refresh'
@@ -23,7 +28,7 @@ class SysLogger(metaclass=Singleton):
     SysLogger class for Python applications using SysLogHandler
     """
     DEFAULT_LOG_FACILITY = SysLogHandler.LOG_USER
-    DEFAULT_LOG_LEVEL = SysLogHandler.LOG_NOTICE
+    DEFAULT_LOG_LEVEL = logging.NOTICE
 
     def __init__(self, log_identifier=None, log_facility=DEFAULT_LOG_FACILITY, log_level=DEFAULT_LOG_LEVEL, enable_runtime_config=False):
         self.log_identifier = log_identifier if log_identifier is not None else os.path.basename(sys.argv[0])
@@ -127,10 +132,11 @@ class SysLogger(metaclass=Singleton):
         self.log(logging.WARNING, msg, also_print_to_console)
 
     def log_notice(self, msg, also_print_to_console=False):
-        self.log(logging.INFO, msg, also_print_to_console)
+        self.log(logging.NOTICE, msg, also_print_to_console)
 
     def log_info(self, msg, also_print_to_console=False):
         self.log(logging.INFO, msg, also_print_to_console)
 
     def log_debug(self, msg, also_print_to_console=False):
         self.log(logging.DEBUG, msg, also_print_to_console)
+    
