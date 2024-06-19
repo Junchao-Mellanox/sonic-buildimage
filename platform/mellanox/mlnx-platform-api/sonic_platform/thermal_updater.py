@@ -16,7 +16,7 @@
 #
 
 from . import utils
-from sonic_py_common import logger
+from .logger import logger
 
 import sys
 import time
@@ -44,7 +44,6 @@ ASIC_DEFAULT_TEMP_CRITICAL_THRESHOLD = 120000
 ERROR_READ_THERMAL_DATA = 254000
 
 TC_CONFIG_FILE = '/run/hw-management/config/tc_config.json'
-logger = logger.Logger('thermal-updater')
 
 
 class ThermalUpdater:

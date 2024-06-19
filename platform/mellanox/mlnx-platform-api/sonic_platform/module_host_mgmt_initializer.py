@@ -16,7 +16,7 @@
 #
 
 from . import utils
-from sonic_py_common.logger import Logger
+from .logger import logger
 
 import atexit
 import os
@@ -29,8 +29,6 @@ MODULE_READY_CONTAINER_FILE = '/tmp/module_host_mgmt_ready'
 MODULE_READY_HOST_FILE = '/tmp/nv-syncd-shared/module_host_mgmt_ready'
 DEDICATE_INIT_DAEMON = 'xcvrd'
 initialization_owner = False
-
-logger = Logger()
 
 
 class ModuleHostMgmtInitializer:
