@@ -18,9 +18,8 @@
 import copy
 import threading
 import time
-from sonic_py_common.logger import Logger
+from .logger import logger
 
-logger = Logger()
 EMPTY_SET = set()
 
 

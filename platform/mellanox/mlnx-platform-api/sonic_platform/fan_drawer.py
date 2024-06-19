@@ -27,14 +27,10 @@ import os
 try:
     from sonic_platform_base.fan_drawer_base import FanDrawerBase
     from sonic_platform_base.fan_base import FanBase
-    from sonic_py_common.logger import Logger
     from .led import FanLed, SharedLed
     from . import utils
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
-
-# Global logger class instance
-logger = Logger()
 
 
 class MellanoxFanDrawer(FanDrawerBase):

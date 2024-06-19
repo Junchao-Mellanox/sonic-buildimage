@@ -18,14 +18,10 @@
 import redis
 import threading
 from sonic_platform_base.module_base import ModuleBase
-from sonic_py_common.logger import Logger
 
 from . import utils
 from .device_data import DeviceDataManager
 from .vpd_parser import VpdParser
-
-# Global logger class instance
-logger = Logger()
 
 
 class Module(ModuleBase):
