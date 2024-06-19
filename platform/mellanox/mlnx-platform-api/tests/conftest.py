@@ -18,6 +18,13 @@
 import os
 import pytest
 import sys
+if sys.version_info.major == 3:
+    from unittest import mock
+else:
+    import mock
+    
+from sonic_py_common import syslogger
+syslogger.SysLogger = mock.MagicMock()
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -26,6 +33,7 @@ sys.path.insert(0, modules_path)
 os.environ["PLATFORM_API_UNIT_TESTING"] = "1"
 
 from sonic_platform import utils
+
 
 @pytest.fixture(scope='function', autouse=True)
 def auto_recover_mock():
