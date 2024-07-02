@@ -24,7 +24,7 @@
 
 try:
     from sonic_platform_base.thermal_base import ThermalBase
-    from sonic_py_common.logger import Logger
+    from sonic_py_common.syslogger import SysLogger
     import copy
     import os
 
@@ -34,7 +34,7 @@ except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
 # Global logger class instance
-logger = Logger()
+logger = SysLogger()
 
 DEFAULT_TEMP_SCALE = 1000
 

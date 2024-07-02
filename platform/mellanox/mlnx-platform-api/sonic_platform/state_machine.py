@@ -15,9 +15,9 @@
 # limitations under the License.
 #
 
-from sonic_py_common.logger import Logger
+from sonic_py_common.syslogger import SysLogger
 
-logger = Logger()
+logger = SysLogger()
 
 
 class State:

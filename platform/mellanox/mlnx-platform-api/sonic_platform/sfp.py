@@ -29,7 +29,7 @@ try:
     import os
     import threading
     import time
-    from sonic_py_common.logger import Logger
+    from sonic_py_common.syslogger import SysLogger
     from sonic_py_common.general import check_output_pipe
     from . import utils
     from .device_data import DeviceDataManager
@@ -277,7 +277,7 @@ limited_eeprom = {
 }
 
 # Global logger class instance
-logger = Logger()
+logger = SysLogger()
 
 
 # SDK initializing stuff, called from chassis
