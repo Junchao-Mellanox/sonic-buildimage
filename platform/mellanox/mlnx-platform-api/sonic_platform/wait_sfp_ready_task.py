@@ -18,9 +18,9 @@
 import copy
 import threading
 import time
-from sonic_py_common.logger import Logger
+from sonic_py_common.syslogger import SysLogger
 
-logger = Logger()
+logger = SysLogger()
 EMPTY_SET = set()
 
 

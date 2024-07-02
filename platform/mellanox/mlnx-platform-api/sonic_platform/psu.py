@@ -26,7 +26,7 @@ try:
     import os
     import time
     from sonic_platform_base.psu_base import PsuBase
-    from sonic_py_common.logger import Logger
+    from sonic_py_common.syslogger import SysLogger
     from .device_data import DeviceDataManager
     from .led import PsuLed, SharedLed, ComponentFaultyIndicator
     from . import utils
@@ -36,7 +36,7 @@ except ImportError as e:
 
 
 # Global logger class instance
-logger = Logger()
+logger = SysLogger()
 
 PSU_PATH = '/var/run/hw-management/'
 
