@@ -1382,15 +1382,7 @@ class SFP(NvidiaSFPCommon):
             freqeuncy (int): 0 - up to 400KHz, 1 - up to 1MHz
         """
         utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/frequency', freqeuncy)
-    
-    def disable_tx_for_sff_optics(self):
-        """Disable TX for SFF optics
-        """
-        api = self.get_xcvr_api()
-        if self.is_sff_api(api) and api.get_tx_disable_support():
-            logger.log_info(f'Disabling tx for SFP {self.sdk_index}')
-            api.tx_disable(True)
-    
+        
     @classmethod
     def get_state_machine(cls):
         """Get state machine object, create if not exists
@@ -1490,7 +1482,6 @@ class SFP(NvidiaSFPCommon):
             return
         
         sfp.update_i2c_frequency()
-        sfp.disable_tx_for_sff_optics()
         logger.log_info(f'SFP {sfp.sdk_index} is set to software control')
         
     @classmethod
@@ -1657,16 +1648,6 @@ class SFP(NvidiaSFPCommon):
         """
         wait_ready_task = cls.get_wait_ready_task()
         wait_ready_task.start()
-        
-        from swsscommon import swsscommon
-    
-        warmstart = swsscommon.WarmStart()
-        warmstart.initialize("xcvrd", "pmon")
-        warmstart.checkWarmStart("xcvrd", "pmon", False)
-        is_warm_start = warmstart.isWarmStart()
-        if is_warm_start:
-            logger.log_notice('Ignore module initialization for warm reboot')
-            return
         
         for s in sfp_list:
             s.on_event(EVENT_START)
