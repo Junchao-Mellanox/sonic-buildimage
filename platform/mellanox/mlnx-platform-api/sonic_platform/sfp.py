@@ -1658,6 +1658,16 @@ class SFP(NvidiaSFPCommon):
         wait_ready_task = cls.get_wait_ready_task()
         wait_ready_task.start()
         
+        from swsscommon import swsscommon
+    
+        warmstart = swsscommon.WarmStart()
+        warmstart.initialize("xcvrd", "pmon")
+        warmstart.checkWarmStart("xcvrd", "pmon", False)
+        is_warm_start = warmstart.isWarmStart()
+        if is_warm_start:
+            logger.log_notice('Ignore module initialization for warm reboot')
+            return
+        
         for s in sfp_list:
             s.on_event(EVENT_START)
             
