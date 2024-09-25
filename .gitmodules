@@ -8,11 +8,11 @@
 	branch = 202311
 [submodule "sonic-sairedis"]
 	path = src/sonic-sairedis
-	url = https://github.com/sonic-net/sonic-sairedis
+	url = https://github.com/Junchao-Mellanox/sonic-sairedis
 	branch = 202311
 [submodule "sonic-swss"]
 	path = src/sonic-swss
-	url = https://github.com/sonic-net/sonic-swss
+	url = https://github.com/Junchao-Mellanox/sonic-swss
 	branch = 202311
 [submodule "src/p4c-bm/p4c-bm"]
 	path = platform/p4/p4c-bm/p4c-bm
