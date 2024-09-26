@@ -132,26 +132,3 @@ class TestFan:
         assert fan.get_direction() == Fan.FAN_DIRECTION_EXHAUST
         mock_read_int.return_value = -1 # invalid value
         assert fan.get_direction() == Fan.FAN_DIRECTION_NOT_APPLICABLE
-
-    def test_psu_fan_set_speed(self):
-        psu = Psu(0)
-        fan = PsuFan(0, 1, psu)
-        subprocess.check_call = MagicMock()
-        mock_file_content = {
-            fan.psu_i2c_bus_path: 'bus',
-            fan.psu_i2c_addr_path: 'addr',
-            fan.psu_i2c_command_path: 'command'
-        }
-        def mock_read_str_from_file(file_path, default='', raise_exception=False):
-            return mock_file_content[file_path]
-        utils.read_str_from_file = mock_read_str_from_file
-        fan.set_speed(60)
-        assert subprocess.check_call.call_count == 0
-        fan.get_presence = MagicMock(return_value=True)
-        assert fan.set_speed(60)
-        subprocess.check_call.assert_called_with(["i2cset", "-f", "-y", "bus", "addr", "command", hex(60), "wp"], universal_newlines=True)
-        subprocess.check_call = MagicMock(side_effect=subprocess.CalledProcessError('', ''))
-        assert not fan.set_speed(60)
-        subprocess.check_call = MagicMock()
-        utils.read_str_from_file = MagicMock(side_effect=RuntimeError(''))
-        assert not fan.set_speed(60)

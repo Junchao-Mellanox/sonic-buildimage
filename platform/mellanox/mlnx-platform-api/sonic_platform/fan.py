@@ -41,7 +41,6 @@ logger = Logger()
 PWM_MAX = 255
 
 FAN_PATH = "/var/run/hw-management/thermal/"
-CONFIG_PATH = "/var/run/hw-management/config"
 
 FAN_DIR = "/var/run/hw-management/thermal/fan{}_dir"
 FAN_DIR_VALUE_EXHAUST = 0
@@ -162,9 +161,6 @@ class PsuFan(MlnxFan):
         self.fan_presence_path = os.path.join(FAN_PATH, "psu{}_fan1_speed_get".format(self.index))
         self.fan_max_speed_path = os.path.join(FAN_PATH, "psu{}_fan_max".format(self.index))
         self.fan_min_speed_path = os.path.join(FAN_PATH, "psu{}_fan_min".format(self.index))
-        self.psu_i2c_bus_path = os.path.join(CONFIG_PATH, 'psu{0}_i2c_bus'.format(self.index))
-        self.psu_i2c_addr_path = os.path.join(CONFIG_PATH, 'psu{0}_i2c_addr'.format(self.index))
-        self.psu_i2c_command_path = os.path.join(CONFIG_PATH, 'fan_command')
         self.psu_fan_dir_path = os.path.join(FAN_PATH, "psu{}_fan_dir".format(self.index))
 
     def get_direction(self):
@@ -227,34 +223,6 @@ class PsuFan(MlnxFan):
         except Exception:
             return self.get_speed()
 
-    def set_speed(self, speed):
-        """
-        Set fan speed to expected value
-
-        Args:
-            speed: An integer, the percentage of full fan speed to set fan to,
-                   in the range 0 (off) to 100 (full speed)
-
-        Returns:
-            bool: True if set success, False if fail.
-        """
-        if not self.get_presence():
-            return False
-
-        try:
-            bus = utils.read_str_from_file(self.psu_i2c_bus_path, raise_exception=True)
-            addr = utils.read_str_from_file(self.psu_i2c_addr_path, raise_exception=True)
-            command = utils.read_str_from_file(self.psu_i2c_command_path, raise_exception=True)
-            speed = self.PSU_FAN_SPEED[int(speed // 10)]
-            command = ["i2cset", "-f", "-y", bus, addr, command, speed, "wp"]
-            subprocess.check_call(command, universal_newlines=True)
-            return True
-        except subprocess.CalledProcessError as ce:
-            logger.log_error('Failed to call command {}, return code={}, command output={}'.format(ce.cmd, ce.returncode, ce.output))
-            return False
-        except Exception as e:
-            logger.log_error('Failed to set PSU FAN speed - {}'.format(e))
-            return False
 
 
 class Fan(MlnxFan):
