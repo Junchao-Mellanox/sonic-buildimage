@@ -201,6 +201,7 @@ function WaitForDevice() {
             LogInfo "Retrying MST device query ${QUERY_RETRY_COUNT}"
         else
             LogError "Retrying MST device query ${QUERY_RETRY_COUNT}"
+        fi
     done
 
     if [[ "${QUERY_RC}" != "${EXIT_SUCCESS}" ]]; then
