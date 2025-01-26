@@ -24,7 +24,7 @@ MLNX_SDK_ASSETS_URL = $(MLNX_ASSETS_GITHUB_URL)/releases/download/$(MLNX_SDK_ASS
 MLNX_SDK_DEB_VERSION = $(subst -,.,$(subst _,.,$(MLNX_SDK_VERSION)))
 
 # Place here URL where SDK sources exist
-MLNX_SDK_SOURCE_BASE_URL =
+MLNX_SDK_SOURCE_BASE_URL = http://nbu-nfs.mellanox.com/auto/sw_system_release/sx_sdk_eth/sx_sdk_eth-4.7.2152/SOURCES
 
 ifneq ($(MLNX_SDK_SOURCE_BASE_URL), )
 SDK_FROM_SRC = y
