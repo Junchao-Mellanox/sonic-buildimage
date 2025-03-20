@@ -37,14 +37,14 @@
 	url = https://github.com/p4lang/ptf.git
 [submodule "src/sonic-utilities"]
 	path = src/sonic-utilities
-	url = https://github.com/Junchao-Mellanox/sonic-utilities.msft
+	url = https://github.com/Junchao-Mellanox/sonic-utilities.git
 	branch = 202412
 [submodule "platform/broadcom/sonic-platform-modules-arista"]
 	path = platform/broadcom/sonic-platform-modules-arista
 	url = https://github.com/aristanetworks/sonic
 [submodule "src/sonic-platform-common"]
 	path = src/sonic-platform-common
-	url = https://github.com/Junchao-Mellanox/sonic-platform-common.msft
+	url = https://github.com/Junchao-Mellanox/sonic-platform-common.git
 	branch = 202412
 [submodule "src/sonic-platform-daemons"]
 	path = src/sonic-platform-daemons
