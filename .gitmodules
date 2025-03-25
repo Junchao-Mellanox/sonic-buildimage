@@ -8,7 +8,7 @@
 	branch = 202412
 [submodule "sonic-sairedis"]
 	path = src/sonic-sairedis
-	url = https://github.com/nvidia-sonic/sonic-sairedis
+	url = https://github.com/Junchao-Mellanox/sonic-sairedis
 	branch = 202412
 [submodule "sonic-swss"]
 	path = src/sonic-swss
