@@ -26,7 +26,7 @@ SIMX_VERSION = 5.1-1065
 FW_FROM_URL = y
 
 MLNX_FW_ASSETS_RELEASE_TAG = fw-2014.2152
-MLNX_FW_ASSETS_URL = $(MLNX_ASSETS_GITHUB_URL)/releases/download/$(MLNX_FW_ASSETS_RELEASE_TAG)
+MLNX_FW_ASSETS_URL = http://nbu-nfs.mellanox.com/auto/sw_system_release/sonic/internal/junchao/dev
 
 ifeq ($(MLNX_FW_BASE_URL), )
 MLNX_FW_BASE_URL = $(MLNX_FW_ASSETS_URL)
