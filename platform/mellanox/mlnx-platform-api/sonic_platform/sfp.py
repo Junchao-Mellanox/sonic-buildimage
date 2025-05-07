@@ -179,8 +179,6 @@ SFP_TYPE_SFF8636 = 'sff8636'
 # SFP stderr
 SFP_EEPROM_NOT_AVAILABLE = 'Input/output error'
 
-SFP_DEFAULT_TEMP_WARNNING_THRESHOLD = 70.0
-SFP_DEFAULT_TEMP_CRITICAL_THRESHOLD = 80.0
 SFP_TEMPERATURE_SCALE = 8.0
 
 # Module host management definitions begin
@@ -839,6 +837,52 @@ class SFP(NvidiaSFPCommon):
         except Exception as e:
             print(e)
         return [False] * api.NUM_CHANNELS if api else None
+    
+    def get_temperature_info(self):
+        """Get SFP temperature info in a fast way. This function is faste than calling following functions one by one: get_temperature, get_temperature_warning_threshold, get_temperature_critical_threshold.
+
+        Returns:
+            tuple: (temperature, warning_threshold, critical_threshold)
+        """
+        try:
+            self.reinit()
+            if not self.is_sw_control():
+                # firmware control, read from sysfs
+                temp_file = f'/sys/module/sx_core/asic0/module{self.sdk_index}/temperature/input'
+                if not os.path.exists(temp_file):
+                    logger.log_error(f'Failed to read from file {temp_file} - not exists')
+                    temperature = None
+                else:
+                    temperature = utils.read_int_from_file(temp_file,
+                                                       log_func=None)
+                    temperature = temperature / SFP_TEMPERATURE_SCALE if temperature is not None else None
+            else:
+                # software control, read from EEPROM
+                temperature = super().get_temperature()
+            if temperature is None:
+                # Failed to read temperature, no need read threshold
+                return None, None, None
+            elif temperature == 0.0:
+                # Temperature is not supported, no need read threshold
+                return 0.0, 0.0, 0.0
+            else:
+                # Read threshold from EEPROM
+                api = self.get_xcvr_api()
+                thresh_support = api.get_transceiver_thresholds_support()
+                if thresh_support is None:
+                    # Failed to read threshold support field, no need read threshold
+                    return temperature, None, None
+                if thresh_support:
+                    # Read threshold from EEPROM
+                    warn_thresh = api.xcvr_eeprom.read(consts.TEMP_HIGH_WARNING_FIELD)
+                    crit_thresh = api.xcvr_eeprom.read(consts.TEMP_HIGH_ALARM_FIELD)
+                    return temperature, warn_thresh, crit_thresh
+                else:
+                    # No threshold support, use default threshold
+                    return temperature, 0.0, 0.0
+        except:
+            # module under initialization, return as temperature not supported
+            return 0.0, 0.0, 0.0
 
     def get_temperature(self):
         """Get SFP temperature
@@ -861,8 +905,7 @@ class SFP(NvidiaSFPCommon):
             return 0.0
 
         self.reinit()
-        temperature = super().get_temperature()
-        return temperature if temperature is not None else None
+        return super().get_temperature()
 
     def get_temperature_warning_threshold(self):
         """Get temperature warning threshold
@@ -877,14 +920,7 @@ class SFP(NvidiaSFPCommon):
         except:
             return 0.0
         
-        support, thresh = self._get_temperature_threshold()
-        if support is None or thresh is None:
-            # Failed to read from EEPROM
-            return None
-        if support is False:
-            # Do not support
-            return 0.0
-        return thresh.get(consts.TEMP_HIGH_WARNING_FIELD, SFP_DEFAULT_TEMP_WARNNING_THRESHOLD)
+        return self._get_temperature_threshold(consts.TEMP_HIGH_WARNING_FIELD)
 
     def get_temperature_critical_threshold(self):
         """Get temperature critical threshold
@@ -899,33 +935,26 @@ class SFP(NvidiaSFPCommon):
         except:
             return 0.0
 
-        support, thresh = self._get_temperature_threshold()
-        if support is None or thresh is None:
-            # Failed to read from EEPROM
-            return None
-        if support is False:
-            # Do not support
-            return 0.0
-        return thresh.get(consts.TEMP_HIGH_ALARM_FIELD, SFP_DEFAULT_TEMP_CRITICAL_THRESHOLD)
+        return self._get_temperature_threshold(consts.TEMP_HIGH_ALARM_FIELD)
 
-    def _get_temperature_threshold(self):
+    def _get_temperature_threshold(self, thresh_field):
         """Get temperature thresholds data from EEPROM
+        
+        Args:
+            thresh_field (str): threshold field name
 
         Returns:
-            tuple: (support, thresh_dict)
+            float: temperature threshold
         """
         self.reinit()
         api = self.get_xcvr_api()
         if not api:
-            return None, None
+            return None
 
         thresh_support = api.get_transceiver_thresholds_support()
-        if thresh_support:
-            if isinstance(api, sff8636.Sff8636Api) or isinstance(api, sff8436.Sff8436Api):
-                return thresh_support, api.xcvr_eeprom.read(consts.TEMP_THRESHOLDS_FIELD)
-            return thresh_support, api.xcvr_eeprom.read(consts.THRESHOLDS_FIELD)
-        else:
-            return thresh_support, {}
+        if thresh_support is None:
+            return None
+        return api.xcvr_eeprom.read(thresh_field) if thresh_support else 0.0
 
     def get_xcvr_api(self):
         """
