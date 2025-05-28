@@ -30,6 +30,7 @@ try:
     from sonic_py_common import device_info
     from functools import reduce
     from .utils import extract_RJ45_ports_index
+    from .utils import extract_cpo_ports_index
     from . import module_host_mgmt_initializer
     from . import utils
     from .device_data import DeviceDataManager
@@ -120,6 +121,10 @@ class Chassis(ChassisBase):
         self._RJ45_port_inited = False
         self._RJ45_port_list = None
 
+        # Build the CPO port list from platform.json and hwsku.json
+        self._cpo_port_inited = False
+        self._cpo_port_list = None
+
         Chassis.chassis_instance = self
 
         self.module_host_mgmt_initializer = module_host_mgmt_initializer.ModuleHostMgmtInitializer()
@@ -138,6 +143,13 @@ class Chassis(ChassisBase):
             self._RJ45_port_list = extract_RJ45_ports_index()
             self._RJ45_port_inited = True
         return self._RJ45_port_list
+
+    @property
+    def cpo_port_list(self):
+        if not self._cpo_port_inited:
+            self._cpo_port_list = extract_cpo_ports_index()
+            self._cpo_port_inited = True
+        return self._cpo_port_list
 
     ##############################################
     # PSU methods
@@ -283,6 +295,9 @@ class Chassis(ChassisBase):
 
     def initialize_sfp(self):
         sfp_count = self.get_num_sfps()
+
+        logger.log_error(f'--- TOMER --- {index}: self.get_num_sfps() = {sfp_count}')
+
         # Use double checked locking mechanism for:
         #     1. protect shared resource self._sfp_list
         #     2. performance (avoid locking every time)
@@ -315,13 +330,25 @@ class Chassis(ChassisBase):
         Returns:
             An integer, the number of sfps available on this chassis
         """
+        num_sfps = 0
         if not self._RJ45_port_inited:
             self._RJ45_port_list = extract_RJ45_ports_index()
             self._RJ45_port_inited = True
+        
+        if not self._cpo_port_inited:
+            self._cpo_port_list = extract_cpo_ports_index()
+            self._cpo_port_inited = True
+        
+        num_sfps = DeviceDataManager.get_sfp_count()
         if self._RJ45_port_list is not None:
-            return DeviceDataManager.get_sfp_count() + len(self._RJ45_port_list)
-        else:
-            return DeviceDataManager.get_sfp_count()
+            num_sfps += len(self._RJ45_port_list)
+        if self._cpo_port_list is not None:
+            logger.log_error(f'--- TOMER --- len(self._cpo_port_list) = {len(self._cpo_port_list)}')
+            num_sfps += len(self._cpo_port_list)
+        
+        
+        
+        return num_sfps
 
     def get_all_sfps(self):
         """
