@@ -33,7 +33,8 @@ from sonic_platform import sfp
 
 
 class TestChangeEvent:
-
+    pass
+    
     # # TOMER - Failing test
     # @mock.patch('sonic_platform.sfp.SFP.get_fd_for_polling_legacy')
     # @mock.patch('select.poll')
