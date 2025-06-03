@@ -344,7 +344,7 @@ class Chassis(ChassisBase):
         if self._RJ45_port_list is not None:
             num_sfps += len(self._RJ45_port_list)
         if self._cpo_port_list is not None:
-            logger.log_error(f'--- TOMER --- len(self._cpo_port_list) = {len(self._cpo_port_list)}')
+            logger.log_error(f'--- DEMO --- Number of CPO ports detected: {len(self._cpo_port_list)}')
             num_sfps += len(self._cpo_port_list)
         
         
