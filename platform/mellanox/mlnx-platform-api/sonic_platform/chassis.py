@@ -276,6 +276,10 @@ class Chassis(ChassisBase):
 
     def initialize_single_sfp(self, index):
         sfp_count = self.get_num_sfps()
+
+        logger.log_error(f'--- TOMER --- {index}: self.get_num_sfps() = {sfp_count}')
+
+
         # Use double checked locking mechanism for:
         #     1. protect shared resource self._sfp_list
         #     2. performance (avoid locking every time)
@@ -295,9 +299,6 @@ class Chassis(ChassisBase):
 
     def initialize_sfp(self):
         sfp_count = self.get_num_sfps()
-
-        logger.log_error(f'--- TOMER --- {index}: self.get_num_sfps() = {sfp_count}')
-
         # Use double checked locking mechanism for:
         #     1. protect shared resource self._sfp_list
         #     2. performance (avoid locking every time)

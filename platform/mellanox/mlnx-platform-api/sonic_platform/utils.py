@@ -32,6 +32,7 @@ HWSKU_JSON = 'hwsku.json'
 PORT_INDEX_KEY = "index"
 PORT_TYPE_KEY = "port_type"
 RJ45_PORT_TYPE = "RJ45"
+CPO_PORT_TYPE = "CPO"
 
 logger = Logger()
 
