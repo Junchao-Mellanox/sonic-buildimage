@@ -20,7 +20,7 @@
 MLNX_FW_BASE_PATH = $(MLNX_SDK_BASE_PATH)
 
 # Place an URL here to FW if you want to download FW instead
-MLNX_FW_BASE_URL =
+MLNX_FW_BASE_URL = http://nbu-nfs.mellanox.com/auto/sw_system_release/sonic/internal/junchao
 
 SIMX_VERSION = 25.3-1004
 
