@@ -276,10 +276,6 @@ class Chassis(ChassisBase):
 
     def initialize_single_sfp(self, index):
         sfp_count = self.get_num_sfps()
-
-        logger.log_error(f'--- TOMER --- {index}: self.get_num_sfps() = {sfp_count}')
-
-
         # Use double checked locking mechanism for:
         #     1. protect shared resource self._sfp_list
         #     2. performance (avoid locking every time)
@@ -344,10 +340,7 @@ class Chassis(ChassisBase):
         if self._RJ45_port_list is not None:
             num_sfps += len(self._RJ45_port_list)
         if self._cpo_port_list is not None:
-            logger.log_error(f'--- DEMO --- Number of CPO ports detected: {len(self._cpo_port_list)}')
             num_sfps += len(self._cpo_port_list)
-        
-        
         
         return num_sfps
 
