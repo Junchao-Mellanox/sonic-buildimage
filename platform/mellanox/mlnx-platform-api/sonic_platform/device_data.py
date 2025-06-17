@@ -199,6 +199,24 @@ DEVICE_DATA = {
             }
         }
     },
+    'x86_64-nvidia_sn5810-ld-r0': {
+        'thermal': {
+            "capability": {
+                "comex_amb": False
+            }
+        },
+        'sfp': {
+            'fw_control_ports': list(range(66)) # 0 based sfp index list
+        }
+    },
+    'x86_64-nvidia_sn5810-ld_simx-r0': {
+        'thermal': {
+            "capability": {
+                "cpu_pack": False,
+                "comex_amb": False,
+            }
+        }
+    },
     'x86_64-nvidia_sn4280_simx-r0': {
         'thermal': {
             "capability": {
