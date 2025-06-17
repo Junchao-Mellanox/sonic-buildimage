@@ -1,6 +1,6 @@
 {
     "chassis": {
-        "name": "SN5640",
+        "name": "SN5810-LD",
         "components": [
             {
                 "name": "ONIE"
@@ -25,63 +25,7 @@
             }
         ],
         "fans": [],
-        "fan_drawers": [
-            {
-                "name": "drawer1",
-                "fans": [
-                    {
-                        "name": "fan1"
-                    },
-                    {
-                        "name": "fan2"
-                    }
-                ]
-            },
-            {
-                "name": "drawer2",
-                "fans": [
-                    {
-                        "name": "fan3"
-                    },
-                    {
-                        "name": "fan4"
-                    }
-                ]
-            },
-            {
-                "name": "drawer3",
-                "fans": [
-                    {
-                        "name": "fan5"
-                    },
-                    {
-                        "name": "fan6"
-                    }
-                ]
-            },
-            {
-                "name": "drawer4",
-                "fans": [
-                    {
-                        "name": "fan7"
-                    },
-                    {
-                        "name": "fan8"
-                    }
-                ]
-            },
-            {
-                "name": "drawer5",
-                "fans": [
-                    {
-                        "name": "fan9"
-                    },
-                    {
-                        "name": "fan10"
-                    }
-                ]
-            }
-        ],
+        "fan_drawers": [],
         "psus": [
             {
                 "name": "PSU 1",
