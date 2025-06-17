@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<root>
+    <platform_info type="5810">
+
+        <!-- Device MAC address  -->
+        <device-mac-address>00:02:03:04:05:00</device-mac-address>
+
+        <!-- ISSUv1 enabled -->
+        <issu-enabled>1</issu-enabled>
+
+    </platform_info>
+</root>
+
