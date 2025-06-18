@@ -126,7 +126,7 @@ class TestChassis:
         chassis._fan_drawer_list = []
         assert chassis.get_num_fan_drawers() == 2
 
-    # # TOMER - Failing test
+    # # Temporarily commented out due to failing tests
     # @mock.patch('sonic_platform.device_data.DeviceDataManager.is_module_host_management_mode', mock.MagicMock(return_value=False))
     # def test_sfp(self):
     #     # Test get_num_sfps, it should not create any SFP objects
@@ -180,7 +180,7 @@ class TestChassis:
     #     assert chassis.get_num_sfps() == 6
     #     sonic_platform.chassis.extract_RJ45_ports_index = mock.MagicMock(return_value=[])
 
-    # # TOMER - Failing test
+    # # Temporarily commented out due to failing tests
     # @mock.patch('sonic_platform.device_data.DeviceDataManager.is_module_host_management_mode', mock.MagicMock(return_value=False))
     # def test_create_sfp_in_multi_thread(self):
     #     DeviceDataManager.get_sfp_count = mock.MagicMock(return_value=3)

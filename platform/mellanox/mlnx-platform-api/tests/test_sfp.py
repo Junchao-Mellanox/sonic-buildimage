@@ -506,7 +506,7 @@ class TestSfp:
         assert sfp_state == '11'
         assert error_desc is None
 
-    # # TOMER - Failing test
+    # # Temporarily commented out due to failing tests
     # @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
     # @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
     # def test_initialize_sfp_modules(self):

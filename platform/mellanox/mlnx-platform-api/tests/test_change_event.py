@@ -35,7 +35,7 @@ from sonic_platform import sfp
 class TestChangeEvent:
     pass
     
-    # # TOMER - Failing test
+    # # Temporarily commented out due to failing tests
     # @mock.patch('sonic_platform.sfp.SFP.get_fd_for_polling_legacy')
     # @mock.patch('select.poll')
     # @mock.patch('time.monotonic')
@@ -88,7 +88,7 @@ class TestChangeEvent:
     #     assert 'sfp' in change_event and sfp_index in change_event['sfp'] and change_event['sfp'][sfp_index] == '2'
     #     assert 'sfp_error' in change_event and sfp_index in change_event['sfp_error'] and change_event['sfp_error'][sfp_index] == 'some error'
     
-    # #TOMER - Failing test
+    # # Temporarily commented out due to failing tests
     # @mock.patch('sonic_platform.wait_sfp_ready_task.WaitSfpReadyTask.get_ready_set')    
     # @mock.patch('sonic_platform.sfp.SFP.get_fd')
     # @mock.patch('select.poll')
