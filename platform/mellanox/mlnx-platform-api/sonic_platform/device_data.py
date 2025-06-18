@@ -206,7 +206,7 @@ DEVICE_DATA = {
             }
         },
         'sfp': {
-            'fw_control_ports': list(range(66)) # 0 based sfp index list
+            'fw_control_ports': [64, 65] # 0 based sfp index list
         }
     },
     'x86_64-nvidia_sn5810-ld_simx-r0': {
