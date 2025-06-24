@@ -60,40 +60,39 @@ class TestModuleInitializer:
         mock_exists.return_value = False
         initializer.wait_module_ready()
         assert not initializer.initialized
-        
 
-    # # Temporarily commented out due to failing tests
-    # @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
-    # @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
-    # @mock.patch('sonic_platform.sfp.SFP.initialize_sfp_modules', mock.MagicMock())
-    # @mock.patch('sonic_platform.module_host_mgmt_initializer.ModuleHostMgmtInitializer.is_initialization_owner')
-    # @mock.patch('sonic_platform.module_host_mgmt_initializer.ModuleHostMgmtInitializer.wait_module_ready')
-    # @mock.patch('sonic_platform.utils.is_host')
-    # def test_initialize(self, mock_is_host, mock_wait_ready, mock_owner):
-    #     c = chassis.Chassis()
-    #     initializer = module_host_mgmt_initializer.ModuleHostMgmtInitializer()
-    #     mock_is_host.return_value = True
-    #     mock_owner.return_value = False
-    #     # called from host side, just wait
-    #     initializer.initialize(c)
-    #     mock_wait_ready.assert_called_once()
-    #     mock_wait_ready.reset_mock()
+    @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
+    @mock.patch('sonic_platform.chassis.extract_cpo_ports_index', mock.MagicMock(return_value=[]))
+    @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
+    @mock.patch('sonic_platform.sfp.SFP.initialize_sfp_modules', mock.MagicMock())
+    @mock.patch('sonic_platform.module_host_mgmt_initializer.ModuleHostMgmtInitializer.is_initialization_owner')
+    @mock.patch('sonic_platform.module_host_mgmt_initializer.ModuleHostMgmtInitializer.wait_module_ready')
+    @mock.patch('sonic_platform.utils.is_host')
+    def test_initialize(self, mock_is_host, mock_wait_ready, mock_owner):
+        c = chassis.Chassis()
+        initializer = module_host_mgmt_initializer.ModuleHostMgmtInitializer()
+        mock_is_host.return_value = True
+        mock_owner.return_value = False
+        # called from host side, just wait
+        initializer.initialize(c)
+        mock_wait_ready.assert_called_once()
+        mock_wait_ready.reset_mock()
         
-    #     mock_is_host.return_value = False
-    #     # non-initializer-owner called from container side, just wait
-    #     initializer.initialize(c)
-    #     mock_wait_ready.assert_called_once()
-    #     mock_wait_ready.reset_mock()
+        mock_is_host.return_value = False
+        # non-initializer-owner called from container side, just wait
+        initializer.initialize(c)
+        mock_wait_ready.assert_called_once()
+        mock_wait_ready.reset_mock()
         
-    #     mock_owner.return_value = True
-    #     initializer.initialize(c)
-    #     mock_wait_ready.assert_not_called()
-    #     assert initializer.initialized
-    #     assert module_host_mgmt_initializer.initialization_owner
-    #     assert os.path.exists(module_host_mgmt_initializer.MODULE_READY_CONTAINER_FILE)
+        mock_owner.return_value = True
+        initializer.initialize(c)
+        mock_wait_ready.assert_not_called()
+        assert initializer.initialized
+        assert module_host_mgmt_initializer.initialization_owner
+        assert os.path.exists(module_host_mgmt_initializer.MODULE_READY_CONTAINER_FILE)
         
-    #     module_host_mgmt_initializer.clean_up()
-    #     assert not os.path.exists(module_host_mgmt_initializer.MODULE_READY_CONTAINER_FILE)
+        module_host_mgmt_initializer.clean_up()
+        assert not os.path.exists(module_host_mgmt_initializer.MODULE_READY_CONTAINER_FILE)
 
     def test_is_initialization_owner(self):
         initializer = module_host_mgmt_initializer.ModuleHostMgmtInitializer()
