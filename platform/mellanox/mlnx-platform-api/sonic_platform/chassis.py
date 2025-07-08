@@ -289,6 +289,8 @@ class Chassis(ChassisBase):
                         sfp_module = self._import_sfp_module()
                         if self.RJ45_port_list and index in self.RJ45_port_list:
                             self._sfp_list[index] = sfp_module.RJ45Port(index)
+                        elif self.cpo_port_list and index in self.cpo_port_list:
+                            self._sfp_list[index] = sfp_module.CpoPort(index)
                         else:
                             self._sfp_list[index] = sfp_module.SFP(index)
                         self.sfp_initialized_count += 1
@@ -306,6 +308,8 @@ class Chassis(ChassisBase):
                         for index in range(sfp_count):
                             if self.RJ45_port_list and index in self.RJ45_port_list:
                                 sfp_object = sfp_module.RJ45Port(index)
+                            elif self.cpo_port_list and index in self.cpo_port_list:
+                                sfp_object = sfp_module.CpoPort(index)
                             else:
                                 sfp_object = sfp_module.SFP(index)
                             self._sfp_list.append(sfp_object)
@@ -316,6 +320,8 @@ class Chassis(ChassisBase):
                             if self._sfp_list[index] is None:
                                 if self.RJ45_port_list and index in self.RJ45_port_list:
                                     self._sfp_list[index] = sfp_module.RJ45Port(index)
+                                elif self.cpo_port_list and index in self.cpo_port_list:
+                                    self._sfp_list[index] = sfp_module.CpoPort(index)
                                 else:
                                     self._sfp_list[index] = sfp_module.SFP(index)
                         self.sfp_initialized_count = len(self._sfp_list)
