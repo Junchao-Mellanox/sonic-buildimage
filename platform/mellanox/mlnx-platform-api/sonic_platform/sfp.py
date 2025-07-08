@@ -1097,7 +1097,7 @@ class SFP(NvidiaSFPCommon):
         Returns:
             bool: True if the api is of type CMIS
         """
-        return isinstance(xcvr_api, cmis.CmisApi)
+        return isinstance(xcvr_api, cmis_api.CmisApi)
 
     def is_sff_api(self, xcvr_api):
         """Check if the api type is SFF
