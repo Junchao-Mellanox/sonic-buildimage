@@ -1819,7 +1819,22 @@ class CpoPort(NvidiaSFPCommon):
         self.sfp_type = CPO_TYPE
 
     def get_transceiver_info(self):
-        transceiver_info_dict = suprt().get_transceiver_info()
+        transceiver_info_keys = ['manufacturer',
+                                 'model',
+                                 'vendor_rev',
+                                 'serial',
+                                 'vendor_oui',
+                                 'vendor_date',
+                                 'connector',
+                                 'encoding',
+                                 'ext_identifier',
+                                 'ext_rateselect_compliance',
+                                 'cable_type',
+                                 'cable_length',
+                                 'specification_compliance',
+                                 'nominal_bit_rate',
+                                 'application_advertisement']
+        transceiver_info_dict = dict.fromkeys(transceiver_info_keys, 'N/A')
         transceiver_info_dict['type'] = self.sfp_type
         return transceiver_info_dict
 
