@@ -1067,6 +1067,9 @@ class SFP(NvidiaSFPCommon):
         Returns:
             enum: software control or firmware control
         """
+        if DeviceDataManager.always_enable_module_sw_control():
+            return SFP_SW_CONTROL
+
         api = self.get_xcvr_api()
         if not api:
             logger.log_error(f'Failed to get api object for SFP {self.sdk_index}, probably module EEPROM is not ready')

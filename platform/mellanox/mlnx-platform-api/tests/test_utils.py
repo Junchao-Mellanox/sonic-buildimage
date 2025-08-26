@@ -109,6 +109,8 @@ class TestUtils:
         assert func() == 1000
         value = 10000
         assert func() == 1000
+        func.clear_cache()
+        assert func() == 10000
 
     @mock.patch('sonic_py_common.logger.Logger.log_debug')
     def test_default_return(self, mock_log):

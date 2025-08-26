@@ -365,8 +365,7 @@ class DeviceDataManager:
     def is_module_host_management_mode(cls):
         sai_profile_file = '/tmp/sai.profile'
         if not os.path.exists(sai_profile_file):
-            from sonic_py_common import device_info
-            _, hwsku_dir = device_info.get_paths_to_platform_and_hwsku_dirs()
+            _, hwsku_dir = cls.get_paths_to_platform_and_hwsku_dirs()
             sai_profile_file = os.path.join(hwsku_dir, 'sai.profile')
         data = utils.read_key_value_file(sai_profile_file, delimeter='=')
         return data.get('SAI_INDEPENDENT_MODULE_MODE') == '1'
@@ -416,3 +415,38 @@ class DeviceDataManager:
             return None
 
         return sfp_data.get('fw_control_ports')
+
+    @classmethod
+    @utils.read_only_cache()
+    def always_enable_module_sw_control(cls):
+        """
+        Retrieve and cache the 'always enable module software control' flag for the device.
+
+        By default, any SKU with module host management mode enabled will set the 
+        'always enable module software control' flag to True. Users can override this 
+        behavior by specifying "always_enable_module_sw_control": false in the hwsku.json 
+        configuration file.
+
+        Returns:
+            bool: Indicates whether module software control is always enabled.
+        """
+        if not cls.is_module_host_management_mode():
+            return False
+        _, hwsku_dir = cls.get_paths_to_platform_and_hwsku_dirs()
+        hwsku_json = utils.load_json_file(os.path.join(hwsku_dir, 'hwsku.json'))
+        return hwsku_json.get('always_enable_module_sw_control', True)
+
+    @classmethod
+    @utils.read_only_cache()
+    def get_paths_to_platform_and_hwsku_dirs(cls):
+        """
+        Retrieve and cache the paths to the platform and hardware SKU directories.
+
+        The function invokes device_info.get_paths_to_platform_and_hwsku_dirs,
+        which is a time-consuming operation; the result is cached for efficiency.
+
+        Returns:
+            tuple: Paths to the platform and hardware SKU directories.
+        """
+        from sonic_py_common import device_info
+        return device_info.get_paths_to_platform_and_hwsku_dirs()

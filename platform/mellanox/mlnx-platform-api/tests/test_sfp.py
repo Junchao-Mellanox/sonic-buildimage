@@ -412,7 +412,9 @@ class TestSfp:
         assert sfp.set_lpmode(False)
         assert not sfp.set_lpmode(True)
 
-    def test_determine_control_type(self):
+    @mock.patch('sonic_platform.device_data.DeviceDataManager.always_enable_module_sw_control')
+    def test_determine_control_type(self, mock_always_enable_module_sw_control):
+        mock_always_enable_module_sw_control.return_value = False
         sfp = SFP(0)
         sfp.get_xcvr_api = mock.MagicMock(return_value=None)
         assert sfp.determine_control_type() == 0
@@ -424,6 +426,9 @@ class TestSfp:
         sfp.is_supported_for_software_control.return_value = False
         assert sfp.determine_control_type() == 0
         
+        mock_always_enable_module_sw_control.return_value = True
+        assert sfp.determine_control_type() == 1
+
     def test_check_power_capability(self):
         sfp = SFP(0)
         sfp.get_module_max_power = mock.MagicMock(return_value=-1)
