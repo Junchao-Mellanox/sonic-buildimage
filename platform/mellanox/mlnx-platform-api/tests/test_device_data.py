@@ -1,6 +1,6 @@
 #
 # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
-# Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -162,3 +162,12 @@ class TestDeviceData:
         for dpu_name in invalid_dpu_names:
             assert not DeviceDataManager.get_dpu_interface(dpu_name, DpuInterfaceEnum.MIDPLANE_INT.value)
         assert not DeviceDataManager.get_dpu_interface("", "")
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs',
+                mock.MagicMock(return_value=('', '/tmp')))
+    @mock.patch('sonic_platform.device_data.os.path.exists')
+    def test_always_enable_module_sw_control(self, mock_exists):
+        mock_exists.return_value = False
+        assert not DeviceDataManager.always_enable_module_sw_control()
+        mock_exists.return_value = True
+        assert DeviceDataManager.always_enable_module_sw_control()
