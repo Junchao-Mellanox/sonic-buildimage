@@ -1017,9 +1017,12 @@ class SFP(NvidiaSFPCommon):
 
         Args:
             on (bool): True if on
+        
+        Returns:
+            bool: True if success.
         """
         value = 1 if on else 0
-        utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/power_on', value)
+        return utils.write_file(f'/sys/module/sx_core/asic0/module{self.sdk_index}/power_on', value)
     
     def get_reset_state(self):
         """Get reset state of this module, only applicable on host management mode
