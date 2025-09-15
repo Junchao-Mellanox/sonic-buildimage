@@ -199,6 +199,28 @@ DEVICE_DATA = {
             }
         }
     },
+    'x86_64-nvidia_sn5810_ld-r0': {
+        'thermal': {
+            "capability": {
+                "comex_amb": False,
+                "port_amb": False,
+                "fan_amb": False,
+            }
+        },
+        'sfp': {
+            'fw_control_ports': [64, 65] # 0 based sfp index list
+        }
+    },
+    'x86_64-nvidia_sn5810_ld_simx-r0': {
+        'thermal': {
+            "capability": {
+                "cpu_pack": False,
+                "comex_amb": False,
+                "port_amb": False,
+                "fan_amb": False,
+            }
+        }
+    },
     'x86_64-nvidia_sn4280_simx-r0': {
         'thermal': {
             "capability": {
@@ -229,13 +251,22 @@ class DeviceDataManager:
         version = check_output_pipe(["lspci", "-vv"], ["grep", "SimX"])
         parsed_version = re.search("([0-9]+\\.[0-9]+-[0-9]+)", version)
         return parsed_version.group(1) if parsed_version else "N/A"
+    
+    @classmethod
+    @utils.read_only_cache()
+    def get_fan_drawer_sysfs_count(cls):
+        return len(glob.glob('/run/hw-management/thermal/fan*_status'))
 
     @classmethod
     @utils.read_only_cache()
     def get_fan_drawer_count(cls):
         # Here we don't read from /run/hw-management/config/hotplug_fans because the value in it is not
         # always correct.
-        return len(glob.glob('/run/hw-management/thermal/fan*_status')) if cls.is_fan_hotswapable() else 1
+        fan_status_count = cls.get_fan_drawer_sysfs_count()
+        if fan_status_count == 0:
+            # For system with no fan, for example, SN5810.
+            return 0
+        return fan_status_count if cls.is_fan_hotswapable() else 1
 
     @classmethod
     @utils.read_only_cache()
