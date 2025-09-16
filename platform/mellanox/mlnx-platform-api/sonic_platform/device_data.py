@@ -416,3 +416,10 @@ class DeviceDataManager:
             return None
 
         return sfp_data.get('fw_control_ports')
+
+    @classmethod
+    @utils.read_only_cache()
+    def always_enable_module_sw_control(cls):
+        from sonic_py_common import device_info
+        _, hwsku_dir = device_info.get_paths_to_platform_and_hwsku_dirs()
+        return os.path.exists(os.path.join(hwsku_dir, 'always_enable_module_sw_control'))
