@@ -174,13 +174,20 @@ def read_only_cache():
        2. The return value of this method/function never changes.
     """
     def decorator(method):
-        method.return_value = None
+        cache = {'return_value': None, 'cached': False}
 
         @functools.wraps(method)
         def _impl(*args, **kwargs):
-            if not method.return_value:
-                method.return_value = method(*args, **kwargs)
-            return method.return_value
+            if not cache['cached']:
+                cache['return_value'] = method(*args, **kwargs)
+                cache['cached'] = True
+            return cache['return_value']
+
+        def clear_cache():
+            cache['cached'] = False
+            cache['return_value'] = None
+
+        _impl.clear_cache = clear_cache
         return _impl
     return decorator
 
