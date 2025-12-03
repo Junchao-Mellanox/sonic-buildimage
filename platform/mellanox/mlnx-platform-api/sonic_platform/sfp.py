@@ -23,9 +23,6 @@
 #
 #############################################################################
 
-from pickle import NONE
-
-
 try:
     import ctypes
     import select
