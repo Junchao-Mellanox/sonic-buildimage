@@ -1,6 +1,6 @@
 {
     "chassis": {
-        "name": "SN6810_LD",
+        "name": "SN6810_LD_SIMX",
         "components": [
             {
                 "name": "ONIE"
