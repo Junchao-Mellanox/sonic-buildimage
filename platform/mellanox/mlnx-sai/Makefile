@@ -18,7 +18,7 @@ $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
 	wget -c $(MLNX_SAI_SOURCE_BASE_URL)/$(MLNX_SAI_VERSION).tar.gz -O - | tar -xz
 	pushd mlnx_sai
 
-	debuild -e 'make_extra_flags="DEFS=-DACS_OS -DCONFIG_SYSLOG -DENABLE_SOFT_RATE_LIMIT -DCMAKE_SYSTEM_VERSION=$(KVERSION)"' -us -uc -d -b
+	debuild -e 'make_extra_flags="DEFS=-DACS_OS -DCONFIG_SYSLOG -DENABLE_SOFT_RATE_LIMIT -DENABLE_BD_STUBS -DCMAKE_SYSTEM_VERSION=$(KVERSION)"' -us -uc -d -b
 	popd
 
 	mv $(DERIVED_TARGETS) $* $(DEST)/
