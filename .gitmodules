@@ -1,6 +1,6 @@
 [submodule "sonic-swss-common"]
 	path = src/sonic-swss-common
-	url = https://github.com/sonic-net/sonic-swss-common
+	url = https://github.com/nvidia-sonic/sonic-swss-common
     branch = 202205
 [submodule "sonic-linux-kernel"]
 	path = src/sonic-linux-kernel
