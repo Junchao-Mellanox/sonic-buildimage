@@ -143,6 +143,15 @@ ifeq ($(SDK_FROM_SRC),y)
 $(eval $(call add_derived_package,$(WJH_LIBS),$(WJH_LIBS_DBGSYM)))
 endif
 
+SX_HASH_CALC = sx-hash-calc_1.mlnx.$(MLNX_SDK_DEB_VERSION)_amd64.deb
+$(SX_HASH_CALC)_SRC_PATH = $(PLATFORM_PATH)/sdk-src/sx-hash-calc
+$(SX_HASH_CALC)_DEPENDS += $(SX_COMPLIB_DEV) $(SXD_LIBS_DEV) $(APPLIBS_DEV) $(SX_GEN_UTILS_DEV)
+$(SX_HASH_CALC)_RDEPENDS += $(SX_COMPLIB) $(SXD_LIBS) $(APPLIBS)
+SX_HASH_CALC_DBGSYM = sx-hash-calc-dbgsym_1.mlnx.$(MLNX_SDK_DEB_VERSION)_amd64.deb
+ifeq ($(SDK_FROM_SRC),y)
+$(eval $(call add_derived_package,$(SX_HASH_CALC),$(SX_HASH_CALC_DBGSYM)))
+endif
+
 SX_KERNEL = sx-kernel_1.mlnx.$(MLNX_SDK_DEB_VERSION)_amd64.deb
 $(SX_KERNEL)_DEPENDS += $(LINUX_HEADERS) $(LINUX_HEADERS_COMMON)
 $(SX_KERNEL)_SRC_PATH = $(PLATFORM_PATH)/sdk-src/sx-kernel
