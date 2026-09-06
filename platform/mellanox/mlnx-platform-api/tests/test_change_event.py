@@ -47,7 +47,7 @@ class TestChangeEventSeekFailure:
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
     @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
     @mock.patch('sonic_platform.chassis.build_cpo_port_map', mock.MagicMock(return_value=None))
-    @mock.patch('sonic_platform.chassis.build_sfp_port_map', mock.MagicMock(return_value=None))
+    @mock.patch('sonic_platform.chassis.build_cpo_service_port_map', mock.MagicMock(return_value=None))
     @mock.patch('sonic_platform.sfp.SFP.get_module_status')
     @mock.patch('sonic_platform.chassis.Chassis.wait_sfp_ready_for_use', mock.MagicMock(return_value=True))
     def test_get_change_event_legacy_seek_fails(self, mock_status, mock_time, mock_sleep, mock_create_poll, mock_get_fd, mock_get_asic_event):
@@ -123,7 +123,7 @@ class TestChangeEventSeekFailure:
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
     @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
     @mock.patch('sonic_platform.chassis.build_cpo_port_map', mock.MagicMock(return_value=None))
-    @mock.patch('sonic_platform.chassis.build_sfp_port_map', mock.MagicMock(return_value=None))
+    @mock.patch('sonic_platform.chassis.build_cpo_service_port_map', mock.MagicMock(return_value=None))
     @mock.patch('sonic_platform.module_host_mgmt_initializer.ModuleHostMgmtInitializer.initialize', mock.MagicMock())
     def test_get_change_event_module_host_management_seek_fails(
         self, mock_time, mock_sleep, mock_create_poll, mock_get_fd, mock_ready, mock_get_asic_event,
@@ -224,7 +224,7 @@ class TestChangeEvent:
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
     @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
     @mock.patch('sonic_platform.chassis.build_cpo_port_map', mock.MagicMock(return_value=None))
-    @mock.patch('sonic_platform.chassis.build_sfp_port_map', mock.MagicMock(return_value=None))
+    @mock.patch('sonic_platform.chassis.build_cpo_service_port_map', mock.MagicMock(return_value=None))
     @mock.patch('sonic_platform.sfp.SFP.get_module_status')
     @mock.patch('sonic_platform.chassis.Chassis.wait_sfp_ready_for_use', mock.MagicMock(return_value=True))
     def test_get_change_event_legacy(self, mock_status, mock_time, mock_create_poll, mock_get_fd, mock_get_asic_event):
@@ -283,7 +283,7 @@ class TestChangeEvent:
     @mock.patch('sonic_platform.device_data.DeviceDataManager.get_sfp_count', mock.MagicMock(return_value=1))
     @mock.patch('sonic_platform.chassis.extract_RJ45_ports_index', mock.MagicMock(return_value=[]))
     @mock.patch('sonic_platform.chassis.build_cpo_port_map', mock.MagicMock(return_value=None))
-    @mock.patch('sonic_platform.chassis.build_sfp_port_map', mock.MagicMock(return_value=None))
+    @mock.patch('sonic_platform.chassis.build_cpo_service_port_map', mock.MagicMock(return_value=None))
     @mock.patch('sonic_platform.module_host_mgmt_initializer.ModuleHostMgmtInitializer.initialize', mock.MagicMock())
     def test_get_change_event_for_module_host_management_mode(self, mock_time, mock_create_poll, mock_get_fd, mock_ready, mock_get_asic_event):
         """Test steps:

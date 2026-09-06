@@ -109,9 +109,9 @@ class ModuleHostMgmtInitializer:
                                 asic_id = f'asic{asic_id}'
                                 asic_modules = chassis._asic_modules_dict[asic_id]
                                 sfp_list.extend(s for s in polling_list if s in asic_modules)
-                        from .sfp import SFP
+                        from .module_detection_flow import ModuleDetectionFlow
                         if sfp_list:
-                            SFP.initialize_sfp_modules(sfp_list)
+                            ModuleDetectionFlow.initialize_sfp_modules(sfp_list)
                             self.add_asics_to_ready_file(asic_ready_list)
                             for asic_index in asic_ready_list:
                                 self.initialized_list[asic_index] = True

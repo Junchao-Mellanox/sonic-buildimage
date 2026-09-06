@@ -164,9 +164,9 @@ class TestUtils:
         assert utils.extract_RJ45_ports_index() == [0]
 
     @pytest.mark.parametrize(
-        "optical_devices_data, expected_result",
+        "cpo_data, expected_result",
         [
-            # Case 1: optical_devices.json file does not exist
+            # Case 1: cpo.json file does not exist
             (None, None),
             # Case 2: empty file
             ({}, None),
@@ -233,20 +233,11 @@ class TestUtils:
             ),
         ],
     )
-    @mock.patch('sonic_py_common.device_info.get_path_to_platform_dir', mock.MagicMock(return_value='.'))
-    @mock.patch('sonic_platform.utils.load_json_file')
-    @mock.patch('os.path.exists')
-    def test_build_cpo_port_map(self, mock_exists, mock_load_json, optical_devices_data, expected_result):
-        if optical_devices_data is None:
-            mock_exists.return_value = False
-            assert utils.build_cpo_port_map() is None
-            return
-        mock_exists.return_value = True
-        mock_load_json.return_value = optical_devices_data
-        assert utils.build_cpo_port_map() == expected_result
+    def test_build_cpo_port_map(self, cpo_data, expected_result):
+        assert utils.build_cpo_port_map(cpo_data) == expected_result
 
     @pytest.mark.parametrize(
-        "optical_devices_data, expected_result",
+        "cpo_data, expected_result",
         [
             (None, None),
             ({}, None),
@@ -268,17 +259,28 @@ class TestUtils:
             ),
         ],
     )
-    @mock.patch('sonic_py_common.device_info.get_path_to_platform_dir', mock.MagicMock(return_value='.'))
-    @mock.patch('sonic_platform.utils.load_json_file')
-    @mock.patch('os.path.exists')
-    def test_build_sfp_port_map(self, mock_exists, mock_load_json, optical_devices_data, expected_result):
-        if optical_devices_data is None:
-            mock_exists.return_value = False
-            assert utils.build_sfp_port_map() is None
-            return
-        mock_exists.return_value = True
-        mock_load_json.return_value = optical_devices_data
-        assert utils.build_sfp_port_map() == expected_result
+    def test_build_cpo_service_port_map(self, cpo_data, expected_result):
+        assert utils.build_cpo_service_port_map(cpo_data) == expected_result
+
+    @mock.patch('sonic_py_common.device_info.get_cpo_data')
+    def test_the_port_maps_read_cpo_json_when_not_handed_the_data(self, mock_get_cpo_data):
+        """Both builders fall back to the one community reader of cpo.json."""
+        mock_get_cpo_data.return_value = {
+            "interfaces": {
+                "Ethernet0": {
+                    "associated_devices": [
+                        {"device_id": "OE0", "bank": 0},
+                        {"device_id": "ELS0", "bank": 0},
+                    ]
+                }
+            },
+            "sfps": {
+                "Ethernet512": {"module_index": "64", "sdk_module_index": "16"}
+            },
+        }
+
+        assert utils.build_cpo_port_map() == {0: (0, 0, 0)}
+        assert utils.build_cpo_service_port_map() == {64: 16}
 
     @pytest.mark.parametrize(
         "associated_devices, expected",
