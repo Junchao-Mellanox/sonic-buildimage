@@ -586,7 +586,20 @@ class Chassis(ChassisBase):
             available on this chassis
         """
         self.sfp_wait_ready_and_initialize()
-        return super(Chassis, self).get_all_cpos()
+        cpos = super(Chassis, self).get_all_cpos()
+        self._publish_cpo_list(cpos)
+        return cpos
+
+    def _publish_cpo_list(self, cpos):
+        """Hand the CPO ports to CpoPort, which cannot reach them by itself.
+
+        Firmware operations on an odd vModule are served by its even sibling, so
+        a port has to be able to find the others. See
+        CpoPort.resolve_oe_fw_ops_target().
+        """
+        cpo_module = self._import_cpo_module()
+        if cpo_module.CpoPort.global_cpo_list is None:
+            cpo_module.CpoPort.global_cpo_list = cpos
 
     def get_num_cpos(self):
         """
@@ -623,6 +636,11 @@ class Chassis(ChassisBase):
         """
         index = index - 1
         self.sfp_wait_ready_and_initialize()
+        # Build the list only until it has been published once. This is on the
+        # per-port lookup path that the daemons take for every port, so doing it
+        # unconditionally would walk every CPO port on every single lookup.
+        if self._import_cpo_module().CpoPort.global_cpo_list is None:
+            self._publish_cpo_list(super(Chassis, self).get_all_cpos())
         return super(Chassis, self).get_cpo(index)
 
     def get_sfp(self, index):
