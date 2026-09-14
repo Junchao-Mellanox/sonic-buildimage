@@ -381,12 +381,6 @@ RUN sudo ./cmake-3.27.6-linux-x86_64.sh --skip-license --prefix=/usr
 RUN sudo apt-get update -y
 {%- endif %}
 
-{%- if CROSS_BUILD_ENVIRON == "y" %}
-# Arm vs. amd64 versions conflict - remove amd64 packages
-RUN apt-get remove -y libnl-3-200
-RUN eatmydata apt-get install -y libpcre3:$arch
-{%- endif %}
-
 RUN eatmydata apt-get -y build-dep openssh
 
 # Build fix for ARM64 and ARMHF /etc/debian_version

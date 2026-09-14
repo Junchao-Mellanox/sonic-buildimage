@@ -315,6 +315,10 @@ define CHECK_WCACHE_ENABLED
 $(if $(and $(filter $(WCACHE_OPTIONS),$(SONIC_DPKG_CACHE_METHOD)),$(filter-out none,$($(1)_CACHE_MODE))),enabled)
 endef
 
+# Helper: strip PROJECT_ROOT/ prefix so paths display as relative (e.g. target/debs/... not /sonic/target/debs/...)
+define RELPATH
+$(patsubst $(PROJECT_ROOT)/%,%,$(1))
+endef
 # It logs the reason why the target is getting built/rebuilt
 # Args:
 # $(1) => target name
@@ -324,9 +328,9 @@ define SHOW_WHY
 		$(eval $(1)_PREREQ_PHONY:= $(filter $(PHONY),$^))\
 		$(eval $(1)_PREREQ_DNE:= $(filter-out $(wildcard $^) $($(1)_PREREQ_PHONY),$^))\
 		$(eval $(1)_PREREQ_NEW:= $(filter-out $($(1)_PREREQ_DNE),$?))\
-		$(if $(wildcard $@),$(if $($(1)_PREREQ_NEW), NEWER PREREQUISITES: $($(1)_PREREQ_NEW)), $@ does not exist)\
-		$(if $($(1)_PREREQ_DNE),  NON-EXISTENT PREREQUISITES: $($(1)_PREREQ_DNE))\
-		$(if $($(1)_PREREQ_PHONY),  PHONY PREREQUISITES: $($(1)_PREREQ_PHONY)))"  >> $($(1)_DST_PATH)/$(1).log
+		$(if $(wildcard $@),$(if $($(1)_PREREQ_NEW), NEWER PREREQUISITES: $(call RELPATH,$($(1)_PREREQ_NEW))), $(call RELPATH,$@) does not exist)\
+		$(if $($(1)_PREREQ_DNE),  NON-EXISTENT PREREQUISITES: $(call RELPATH,$($(1)_PREREQ_DNE)))\
+		$(if $($(1)_PREREQ_PHONY),  PHONY PREREQUISITES: $(call RELPATH,$($(1)_PREREQ_PHONY))))"  >> $($(1)_DST_PATH)/$(1).log
 
 	@echo "[ FLAGS  FILE    ] : [$($(1)_FILE_FLAGS)] " >> $($(1)_DST_PATH)/$(1).log
 	@echo "[ FLAGS  DEPENDS ] : [$($(1)_DEP_FLAGS_ALL)] " >> $($(1)_DST_PATH)/$(1).log

@@ -6,20 +6,22 @@ MAIN_TARGET = mlnx-sai_1.mlnx.$(MLNX_SAI_VERSION)_amd64.deb
 DERIVED_TARGETS = mlnx-sai-dbgsym_1.mlnx.$(MLNX_SAI_VERSION)_amd64.deb
 
 $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
+	mkdir -p /sonic/usr/include
+	mkdir -p /sonic/usr/lib
 	wget -c https://github.com/xdp-project/xdp-tools/releases/download/v1.6.0/xdp-tools-1.6.0.tar.gz -O - | tar -xz
 	pushd xdp-tools-1.6.0
 	FORCE_SUBDIR_LIBBPF=1 ./configure
-	sudo make STATIC_CFLAGS="-fPIC" libxdp_install
-	sudo cp -r ./lib/libbpf/src/root/include/bpf /usr/local/include/
-	sudo cp ./lib/libbpf/src/libbpf.a /usr/local/lib/
+	sudo make STATIC_CFLAGS="-fPIC" install PREFIX=/usr DESTDIR=/sonic
+	sudo cp -r ./lib/libbpf/src/root/include/bpf /sonic/usr/include/
+	sudo cp ./lib/libbpf/src/libbpf.a /sonic/usr/lib/
 	popd
 
 	rm -rf mlnx_sai
-	#wget -c $(MLNX_SAI_SOURCE_BASE_URL)/$(MLNX_SAI_VERSION).tar.gz -O - | tar -xz
-	tar -xvzf $(MLNX_SAI_VERSION).tar.gz
+	wget -c $(MLNX_SAI_SOURCE_BASE_URL)/$(MLNX_SAI_VERSION).tar.gz -O - | tar -xz
+	#tar -xvzf $(MLNX_SAI_VERSION).tar.gz
 	pushd mlnx_sai
 
-	debuild -e 'make_extra_flags="DEFS=-DACS_OS -DCONFIG_SYSLOG -DENABLE_SOFT_RATE_LIMIT -DENABLE_BD_STUBS -DCMAKE_SYSTEM_VERSION=$(KVERSION)"' -us -uc -d -b
+	debuild -e 'make_extra_flags="DEFS=-DACS_OS -DCONFIG_SYSLOG -DENABLE_SOFT_RATE_LIMIT -DENABLE_BD_STUBS -DCMAKE_SYSTEM_VERSION=$(KVERSION) -DXDP_TOOLS_LIBS_PATH=/sonic"' -us -uc -d -b
 	popd
 
 	mv $(DERIVED_TARGETS) $* $(DEST)/
