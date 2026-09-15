@@ -116,9 +116,26 @@ class TestSharedXcvrSurface:
 
     @pytest.mark.parametrize('name', AGGREGATE_GETTERS)
     def test_both_branches_answer_it_from_the_same_place(self, name):
-        """One body serves a pluggable port and a CPO port alike."""
+        """One body serves a pluggable port and a CPO port alike.
+
+        Except where a CPO port merges: its media lives in two devices, so for
+        those it wraps this body instead of taking it as is.
+        """
         assert getattr(SFP, name) is vars(ModuleXcvrMixin)[name], name
-        assert getattr(CpoPort, name) is vars(ModuleXcvrMixin)[name], name
+        if name not in vars(CpoPort):
+            assert getattr(CpoPort, name) is vars(ModuleXcvrMixin)[name], name
+
+    def test_a_cpo_port_wraps_the_shared_body_rather_than_replacing_it(self):
+        """What a CPO port merges is still this body underneath.
+
+        The merge adds the laser source's half on top of it; the merge itself
+        is covered in test_cpo_port.
+        """
+        merged = [n for n in AGGREGATE_GETTERS if n in vars(CpoPort)]
+        assert merged, 'expected a CPO port to merge some of these'
+        for name in merged:
+            answers_after_cpo = [c for c in CpoPort.__mro__[1:] if name in vars(c)]
+            assert answers_after_cpo[:1] == [ModuleXcvrMixin], name
 
     @pytest.mark.parametrize('name', AGGREGATE_GETTERS)
     def test_it_says_the_same_as_the_community_body_it_replaces(self, name):

@@ -176,6 +176,55 @@ class CpoPort(ModuleXcvrMixin, ModuleSysfsMixin, CpoBase):
         for i in range(self.NUMBER_OF_BANKS):
             port_dict[self.index + i] = value
 
+    # This part of merging the two halves is the same as in the STATE DB Table is temporary
+    # and going to be removed once the STATE DB Table is updated to support new ELS Tables.
+
+    def _merged_halves(self, getter_name):
+        """The engine's answer to `getter_name`, enriched with the laser source's.
+
+        The getter is named once and resolved on both halves, so the two can
+        never be paired up wrongly. The laser source answers with els_-prefixed
+        keys only, so the two are a disjoint union in practice; the engine is
+        merged last anyway, so its own fields cannot be shadowed by the second
+        device even if that ever stops holding.
+        """
+        oe_result = getattr(super(), getter_name)()
+        if oe_result is None:
+            # Nothing to enrich. A port whose engine cannot be read reports
+            # nothing at all, rather than a laser-source-only answer that would
+            # look like a healthy port which had lost most of its fields.
+            return None
+        try:
+            els_result = getattr(self.elsfp.get_api(), getter_name)()
+        except Exception as e:
+            # The engine's half still stands on its own, and this runs on every
+            # DOM cycle, so stay quiet about an unreachable laser source.
+            logger.log_debug(f'{self}: no laser source half for {getter_name}: {e}')
+            return oe_result
+        if not els_result:
+            return oe_result
+        merged = dict(els_result)
+        merged.update(oe_result)
+        return merged
+
+    def get_transceiver_info(self):
+        return self._merged_halves('get_transceiver_info')
+
+    def get_transceiver_status(self):
+        return self._merged_halves('get_transceiver_status')
+
+    def get_transceiver_status_flags(self):
+        return self._merged_halves('get_transceiver_status_flags')
+
+    def get_transceiver_dom_real_value(self):
+        return self._merged_halves('get_transceiver_dom_real_value')
+
+    def get_transceiver_dom_flags(self):
+        return self._merged_halves('get_transceiver_dom_flags')
+
+    def get_transceiver_threshold_info(self):
+        return self._merged_halves('get_transceiver_threshold_info')
+
     def set_cdb_target(self, cdb_target):
         """
         Set CDB target to perform CDB commands on a ELS target and not on default module target which is 0.

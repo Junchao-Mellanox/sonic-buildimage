@@ -114,6 +114,15 @@ UNSUPPORTED = (
     ('set_optoe_write_max', (64,)),
 )
 
+# The aggregates a port answers out of both of its devices, read off the class
+# so that merging one more does not need this list touched. Everything else on
+# the transceiver surface stays a plain forwarder to the optical engine.
+MERGED_HALVES = tuple(sorted(n for n in vars(CpoPort)
+                             if n.startswith('get_transceiver')))
+FORWARDED_TO_THE_ENGINE = tuple(n for n in CALLED_BY_XCVRD + CALLED_BY_SFPUTIL
+                                if n.startswith('get_transceiver')
+                                and n not in MERGED_HALVES)
+
 
 def _upstream_api_forwarders():
     """Upstream members whose whole body is 'ask the xcvr api'.
@@ -191,18 +200,55 @@ class TestSurface:
         with pytest.raises(NotImplementedError):
             getattr(cpo, name)(*args)
 
-    @pytest.mark.parametrize('name', [n for n in CALLED_BY_XCVRD
-                                      if n.startswith('get_transceiver')])
-    def test_an_aggregate_getter_asks_the_api(self, name, cpo):
+    @pytest.mark.parametrize('name', FORWARDED_TO_THE_ENGINE)
+    def test_a_forwarded_getter_asks_the_api(self, name, cpo):
         """The written-out forwarders answer from the api, like upstream's do."""
         api = mock.MagicMock()
         with mock.patch.object(cpo, 'get_xcvr_api', return_value=api):
             assert getattr(cpo, name)() is getattr(api, name).return_value
 
-    @pytest.mark.parametrize('name', [n for n in CALLED_BY_XCVRD
-                                      if n.startswith('get_transceiver')])
+    @pytest.mark.parametrize('name', MERGED_HALVES)
+    def test_an_aggregate_getter_asks_both_halves(self, name, cpo):
+        """A port's media lives in two devices, so an aggregate asks both.
+
+        One table per port is what the daemons and CLI read, so the laser
+        source's half is merged in here rather than reported separately.
+        """
+        oe, els = mock.MagicMock(), mock.MagicMock()
+        getattr(oe, name).return_value = {'engine_field': 'oe'}
+        getattr(els, name).return_value = {'els_field': 'els'}
+        with mock.patch.object(cpo, 'get_xcvr_api', return_value=oe), \
+                mock.patch.object(cpo.elsfp, 'get_api', return_value=els):
+            assert getattr(cpo, name)() == {'engine_field': 'oe', 'els_field': 'els'}
+
+    @pytest.mark.parametrize('name', MERGED_HALVES)
+    def test_an_aggregate_getter_never_lets_the_laser_source_shadow_the_engine(self, name, cpo):
+        """The engine owns the port's identity, so it wins any collision."""
+        oe, els = mock.MagicMock(), mock.MagicMock()
+        getattr(oe, name).return_value = {'shared': 'oe'}
+        getattr(els, name).return_value = {'shared': 'els'}
+        with mock.patch.object(cpo, 'get_xcvr_api', return_value=oe), \
+                mock.patch.object(cpo.elsfp, 'get_api', return_value=els):
+            assert getattr(cpo, name)() == {'shared': 'oe'}
+
+    @pytest.mark.parametrize('name', MERGED_HALVES)
+    def test_an_aggregate_getter_still_answers_without_a_laser_source(self, name, cpo):
+        """An unreachable laser source must not cost us the engine's half."""
+        oe = mock.MagicMock()
+        getattr(oe, name).return_value = {'engine_field': 'oe'}
+        with mock.patch.object(cpo, 'get_xcvr_api', return_value=oe), \
+                mock.patch.object(cpo.elsfp, 'get_api',
+                                  side_effect=RuntimeError('no laser source')):
+            assert getattr(cpo, name)() == {'engine_field': 'oe'}
+
+    @pytest.mark.parametrize('name', MERGED_HALVES)
     def test_an_aggregate_getter_answers_nothing_without_an_api(self, name, cpo):
-        with mock.patch.object(cpo, 'get_xcvr_api', return_value=None):
+        """With no engine there is nothing to enrich, so the port stays silent
+        rather than reporting a laser-source-only half of a transceiver."""
+        els = mock.MagicMock()
+        getattr(els, name).return_value = {'els_field': 'els'}
+        with mock.patch.object(cpo, 'get_xcvr_api', return_value=None), \
+                mock.patch.object(cpo.elsfp, 'get_api', return_value=els):
             assert getattr(cpo, name)() is None
 
     def test_the_api_lifecycle_comes_from_cpo_base(self):
