@@ -321,7 +321,11 @@
             "port_type": "CPO"
         },
         "Ethernet512": {
-            "default_brkout_mode": "2x100G",
+            "default_brkout_mode": "1x100G",
+            "autoneg": "off"
+        },
+        "Ethernet513": {
+            "default_brkout_mode": "1x100G",
             "autoneg": "off"
         }
     }
