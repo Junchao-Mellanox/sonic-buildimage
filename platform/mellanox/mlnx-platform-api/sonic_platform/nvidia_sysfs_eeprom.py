@@ -43,14 +43,7 @@ from sonic_platform_base.sonic_xcvr.mem_maps.public.cmis import CMIS_ARCH_PAGES
 
 logger = Logger()
 
-SX_CORE_ROOT = '/sys/module/sx_core'
-
-# sx_core gathers the modules of every ASIC under a single 'asic0' directory, so
-# no path below takes an ASIC index. The index remains real device identity -
-# hw-management's tree is genuinely per-ASIC - it just does not locate a module
-# here.
-#'SX_CORE_ROOT'/asic0
-SX_CORE_ASIC_ROOT = os.path.join(SX_CORE_ROOT, 'asic0')
+SX_CORE_ASIC_ROOT = '/sys/module/sx_core/asic0'
 
 SFP_PAGE0_PATH = '0/i2c-0x50/data'
 SFP_A2H_PAGE0_PATH = '0/i2c-0x51/data'
@@ -71,35 +64,35 @@ A2H_ALIAS_PAGE_NUM = -1
 
 def module_root(sdk_index):
     """Root of one module's sysfs tree.
-    'SX_CORE_ROOT'/asic0/module<N>
+    'SX_CORE_ASIC_ROOT'/module<N>
     """
     return os.path.join(SX_CORE_ASIC_ROOT, f'module{sdk_index}')
 
 
 def bank_root(sdk_index, bank):
     """Root of one bank's sysfs tree under its module.
-    'SX_CORE_ROOT'/asic0/module<N>/bank<B>
+    'SX_CORE_ASIC_ROOT'/module<N>/bank<B>
     """
     return os.path.join(module_root(sdk_index), f'bank{bank}')
 
 
 def module_attr_path(sdk_index, name):
     """Path of a single module-level sysfs attribute, for example 'present'.
-    'SX_CORE_ROOT'/asic0/module<N>/<name>
+    'SX_CORE_ASIC_ROOT'/module<N>/<name>
     """
     return os.path.join(module_root(sdk_index), name)
 
 
 def module_pages_root(sdk_index):
     """Root of the per-page EEPROM tree of a module that has no banks.
-    'SX_CORE_ROOT'/asic0/module<N>/eeprom/pages
+    'SX_CORE_ASIC_ROOT'/module<N>/eeprom/pages
     """
     return os.path.join(module_root(sdk_index), 'eeprom', 'pages')
 
 
 def bank_pages_root(sdk_index, bank):
     """Root of the per-page EEPROM tree of one bank of a banked module.
-    'SX_CORE_ROOT'/asic0/module<N>/bank<B>/eeprom/pages
+    'SX_CORE_ASIC_ROOT'/module<N>/bank<B>/eeprom/pages
     """
     return os.path.join(bank_root(sdk_index, bank), 'eeprom', 'pages')
 

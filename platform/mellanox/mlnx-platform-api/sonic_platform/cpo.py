@@ -189,23 +189,17 @@ class CpoPort(ModuleXcvrMixin, ModuleSysfsMixin, CpoBase):
         device even if that ever stops holding.
         """
         oe_result = getattr(super(), getter_name)()
-        if oe_result is None:
-            # Nothing to enrich. A port whose engine cannot be read reports
-            # nothing at all, rather than a laser-source-only answer that would
-            # look like a healthy port which had lost most of its fields.
+        if not oe_result:
+            logger.log_error(f'no engine half for {getter_name}')
             return None
         try:
             els_result = getattr(self.elsfp.get_api(), getter_name)()
         except Exception as e:
-            # The engine's half still stands on its own, and this runs on every
-            # DOM cycle, so stay quiet about an unreachable laser source.
-            logger.log_debug(f'{self}: no laser source half for {getter_name}: {e}')
+            logger.log_debug(f'no laser source half for {getter_name}: {e}')
             return oe_result
         if not els_result:
             return oe_result
-        merged = dict(els_result)
-        merged.update(oe_result)
-        return merged
+        return {**els_result, **oe_result}
 
     def get_transceiver_info(self):
         return self._merged_halves('get_transceiver_info')
