@@ -304,27 +304,30 @@ def extract_RJ45_ports_index(num_of_asics=1):
     return _extract_ports_index_by_type(RJ45_PORT_TYPE, num_of_asics)
 
 
-def build_cpo_port_map():
+def build_cpo_port_map(cpo_data=None):
     """Build the CPO port map used by chassis as cpo_port_map.
 
-    Reads optical_devices.json (interfaces only). Each interface may list OE/ELS
+    Reads the interfaces section of cpo.json. Each interface may list OE/ELS
     devices; the first time a (oe_id, els_id, bank_id) triple appears in file order,
     it is assigned the next chassis index 0, 1, 2, ... Duplicate triples on later
     interfaces (e.g. multiple Ethernet names for the same bank) are skipped.
+
+    Args:
+        cpo_data: already parsed cpo.json, as handed to construct_cpo_devices.
+                  Read from disk when not given.
 
     Returns:
         dict[int, tuple[int, int, int]]: chassis_index -> (oe_id, els_id, bank_id)
         for CpoPort construction, e.g. {0: (0, 0, 0), 1: (0, 0, 1)}.
         None if the file is missing, empty, or has no parseable interfaces.
     """
-    platform_path = device_info.get_path_to_platform_dir()
-    optical_devices_path = os.path.join(platform_path, device_info.OPTICAL_DEVICES_JSON_FILE)
-    if not os.path.exists(optical_devices_path):
+    if cpo_data is None:
+        cpo_data = device_info.get_cpo_data()
+    if not cpo_data:
         return None
-    optical_devices_data = load_json_file(optical_devices_path)
-    if not optical_devices_data:
+    interfaces = cpo_data.get('interfaces')
+    if not isinstance(interfaces, dict):
         return None
-    interfaces = optical_devices_data.get('interfaces')
 
     seen = set()
     cpo_port_map = {}
@@ -373,27 +376,28 @@ def _parse_oe_els_bank_for_interface(interface_associated_devices, interface_nam
     return oe_id, els_id, bank_id
 
 
-def build_sfp_port_map():
-    """Build the service port map used by chassis as sfp_port_map.
+def build_cpo_service_port_map(cpo_data=None):
+    """Build the CPO service port map.
 
-    Reads optical_devices.json (sfps section). Maps module_index to
+    Reads the sfps section of cpo.json. Maps module_index to
     SDK module_index for the service port on CPO platforms, e.g. {64: 16}.
 
+    Args:
+        cpo_data: already parsed cpo.json, as handed to construct_cpo_devices.
+                  Read from disk when not given.
+
     Returns:
-        dict[int, int] or None if optical_devices.json is missing or has no
+        dict[int, int] or None if cpo.json is missing or has no
         parseable sfps entries.
     """
-    platform_path = device_info.get_path_to_platform_dir()
-    optical_devices_path = os.path.join(platform_path, device_info.OPTICAL_DEVICES_JSON_FILE)
-    if not os.path.exists(optical_devices_path):
+    if cpo_data is None:
+        cpo_data = device_info.get_cpo_data()
+    if not cpo_data:
         return None
-    optical_devices_data = load_json_file(optical_devices_path)
-    if not optical_devices_data:
-        return None
-    service_ports_data = optical_devices_data.get('sfps')
+    service_ports_data = cpo_data.get('sfps')
     if not isinstance(service_ports_data, dict):
         return None
-    sfp_port_map = {}
+    cpo_service_port_map = {}
     for _interface_name, interface_data in service_ports_data.items():
         raw_index = interface_data.get('module_index')
         raw_sdk_index = interface_data.get('sdk_module_index')
@@ -404,8 +408,8 @@ def build_sfp_port_map():
             sdk_module_index = int(raw_sdk_index)
         except (TypeError, ValueError):
             continue
-        sfp_port_map[module_index] = sdk_module_index
-    return sfp_port_map if sfp_port_map else None
+        cpo_service_port_map[module_index] = sdk_module_index
+    return cpo_service_port_map if cpo_service_port_map else None
 
 
 # Use this function only for files that have user read permission.
