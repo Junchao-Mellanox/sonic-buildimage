@@ -638,10 +638,17 @@
             }
         },
         "Ethernet512": {
-            "index": "65,65",
-            "lanes": "512,513",
+            "index": "65",
+            "lanes": "512",
             "breakout_modes": {
-                "2x100G": ["etp129a", "etp129b"]
+                "1x100G": ["etp129a"]
+            }
+        },
+        "Ethernet513": {
+            "index": "65",
+            "lanes": "513",
+            "breakout_modes": {
+                "1x100G": ["etp129b"]
             }
         }
     },
