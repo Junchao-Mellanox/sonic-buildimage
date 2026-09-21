@@ -160,28 +160,6 @@ class TestPresencePath:
         on_event.assert_called_once_with(port, mdf.EVENT_NOT_PRESENT)
         assert port.control_type_writes == []
 
-    def test_a_module_found_in_software_control_is_restored_before_being_reported(self):
-        """This port must always stay under firmware control, but something
-        below SONiC can have moved it, e.g. the SDK independent module mode.
-        Its "present" then reads 0 whatever the cage holds, so presence has to
-        be taken from "hw_present" instead.
-        """
-        port = _Port(sdk_index=5, asic_index=1, control_type=mdf.SFP_SW_CONTROL)
-        with mock.patch.object(ModuleDetectionFlow, 'on_event') as on_event, \
-             mock.patch('sonic_platform.utils.read_int_from_file', return_value=1) as read:
-            ModuleDetectionFlow.action_fcp_on_start(port)
-        read.assert_called_once_with('/sys/module/sx_core/asic1/module5/hw_present')
-        assert port.control_type_writes == [mdf.SFP_FW_CONTROL]
-        on_event.assert_called_once_with(port, mdf.EVENT_PRESENT)
-
-    def test_an_empty_cage_in_software_control_has_nothing_to_restore(self):
-        port = _Port(control_type=mdf.SFP_SW_CONTROL)
-        with mock.patch.object(ModuleDetectionFlow, 'on_event') as on_event, \
-             mock.patch('sonic_platform.utils.read_int_from_file', return_value=0):
-            ModuleDetectionFlow.action_fcp_on_start(port)
-        assert port.control_type_writes == []
-        on_event.assert_called_once_with(port, mdf.EVENT_NOT_PRESENT)
-
 
 class TestPolling:
     def test_a_host_driven_module_is_watched_on_presence_and_power(self):

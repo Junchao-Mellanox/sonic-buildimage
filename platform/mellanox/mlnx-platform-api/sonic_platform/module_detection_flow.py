@@ -223,19 +223,7 @@ class ModuleDetectionFlow:
 
     @classmethod
     def action_fcp_on_start(cls, sfp):
-        # This module must always stay under firmware control, but it can still have been
-        # switched to software control below SONiC, e.g. by the SDK independent module mode.
-        # While a module is under software control the SDK "present" sysfs always reads 0, so
-        # presence must be taken from "hw_present" and firmware control restored before the
-        # module is reported as present.
-        if sfp.get_control_type() != SFP_FW_CONTROL:
-            present = utils.read_int_from_file(sfp._module_attr_path(SFP_SYSFS_HW_PRESENT))
-            if present:
-                logger.log_notice(f'SFP {sfp.get_sdk_index()} is firmware control only but '
-                                  f'found in software control, restoring firmware control')
-                sfp.set_control_type(SFP_FW_CONTROL)
-        else:
-            present = utils.read_int_from_file(sfp._module_attr_path(SFP_SYSFS_PRESENT))
+        present = utils.read_int_from_file(sfp._module_attr_path(SFP_SYSFS_PRESENT))
         if present:
             cls.on_event(sfp, EVENT_PRESENT)
         else:
