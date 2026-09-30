@@ -369,7 +369,6 @@ class TestFirmwareUpgrade(unittest.TestCase):
         mock_create_manager.side_effect = mock_managers
 
         with patch.object(FirmwareCoordinator, '_start_mst', return_value=True), \
-             patch.object(FirmwareCoordinator, '_stop_mst'), \
              patch('mellanox_fw_manager.firmware_coordinator.Queue') as mock_queue_class:
             mock_queue = MagicMock()
             mock_queue.empty.side_effect = [False, False, True]  # Two items, then empty
@@ -420,7 +419,6 @@ class TestFirmwareUpgrade(unittest.TestCase):
         mock_create_manager.side_effect = mock_managers
 
         with patch.object(FirmwareCoordinator, '_start_mst', return_value=True), \
-             patch.object(FirmwareCoordinator, '_stop_mst'), \
              patch('mellanox_fw_manager.firmware_coordinator.Queue') as mock_queue_class:
             mock_queue = MagicMock()
             mock_queue.empty.side_effect = [False, False, True]  # Two items, then empty

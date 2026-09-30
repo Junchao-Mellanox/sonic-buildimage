@@ -89,9 +89,11 @@ class TestParseCompiledComponentsFile:
         mock_exists.return_value = False
 
         result = parse_compiled_components_file()
-        # All components should be N/A
+        # All components should be N/A, except OE_FW which has no COMPILATION
+        # value by design (AF-10) and reads "-".
         for comp in list(get_component_rules().keys()) + ["SIMX"]:
-            assert result[comp] == "N/A"
+            expected = "-" if comp == "OE_FW" else "N/A"
+            assert result[comp] == expected
 
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('builtins.open', new_callable=mock.mock_open,

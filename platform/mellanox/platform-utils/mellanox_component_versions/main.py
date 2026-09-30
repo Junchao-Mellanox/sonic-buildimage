@@ -57,6 +57,49 @@ def parse_fw_version_dpu(output: str) -> list[str]:
     return parse_fw_version(output, "BlueField")
 
 
+def parse_oe_fw_version(_output: str) -> list[str]:
+    """
+    Running Optical Engine firmware, read from the vModule device (AF-10).
+
+    Needs an MST session, which this tool does not otherwise start, so one is
+    started before the read and - deliberately - not stopped afterwards.
+    'mst stop' unloads mst_pci/mst_pciconf unconditionally, even while another
+    process holds a /dev/mst device open (measured on hardware), so stopping
+    here could pull the driver out from under a concurrent firmware burn or a
+    syncd start. This is the same rule FirmwareCoordinator.mst_session follows;
+    'mst start' is idempotent and the syncd start path tears the modules down
+    on its own when it rebinds the PCI device, so nothing accumulates.
+
+    A failure yields "N/A" rather than failing the tool - this is a reporting
+    command, and an unreadable vModule must not cost the operator every other
+    row.
+
+    Returns ["N/A"] on any platform without a vModule, which is every non-CPO
+    platform (AF-7).
+    """
+    try:
+        from mellanox_fw_manager import vmod_manager
+    except ImportError:
+        return ["N/A"]
+
+    if not vmod_manager.is_cpo_platform():
+        return ["N/A"]
+
+    try:
+        subprocess.run(["mst", "start"], shell=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["mst", "module", "add"], shell=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        versions = []
+        for asic_index in range(DeviceDataManager.get_asic_count()):
+            version = vmod_manager.get_current_vmod_version(asic_index=asic_index)
+            versions.append(version or "N/A")
+        return versions or ["N/A"]
+    except Exception:
+        return ["N/A"]
+
+
 @dataclass
 class ComponentRule:
     deb_package: str | None = None
@@ -73,6 +116,11 @@ COMPONENT_RULES_SW = {
     "SAI": ComponentRule(deb_package="mlnx-sai", regex=r".*1\.mlnx\.([A-Za-z0-9.]*)", is_from_syncd=True),
     "SAI_API_HEADERS": ComponentRule(cmd="dpkg -s mlnx-sai", regex="X-Sai-Headers-Version: ([0-9.]+)", is_from_syncd=True),
     "FW": ComponentRule(cmd="mlxfwmanager --query --query-format xml", regex=r"[0-9]{2}[\._]([0-9._-]*)", fn=parse_fw_version_sw),
+    # AF-10. The two columns are the version the image was built with and the
+    # version running on the vModule. They are NOT directly comparable today:
+    # the device and the MFA report OE firmware in different namespaces, so the
+    # row shows both raw values rather than a verdict.
+    "OE_FW": ComponentRule(cmd="true", fn=parse_oe_fw_version),
     "KERNEL": ComponentRule(cmd="uname -r", regex=r"(.*)-[a-z0-9]+$"),
     "RSHIM": ComponentRule(deb_package="rshim"),
 }
@@ -147,6 +195,17 @@ def process_rule(rule: ComponentRule) -> tuple[bool, str | list[str]]:
 def parse_compiled_components_file():
     rules = get_component_rules()
     compiled_versions = {comp: "N/A" for comp in list(rules.keys()) + ["SIMX"]}
+
+    # OE_FW has no COMPILATION value (AF-10). The build writes no OE_FW line
+    # into COMPONENT_VERSIONS_FILE, and deriving it at runtime means extracting
+    # the device's package from the MFA - several seconds on every invocation
+    # of what is meant to be a cheap reporting command. Shown as '-' instead.
+    #
+    # Seeded before the file is read, so it also applies when the file is
+    # missing, and so that a recorded OE_FW line still wins if the build ever
+    # starts writing one.
+    if "OE_FW" in compiled_versions:
+        compiled_versions["OE_FW"] = "-"
 
     if not os.path.exists(COMPONENT_VERSIONS_FILE):
         return compiled_versions

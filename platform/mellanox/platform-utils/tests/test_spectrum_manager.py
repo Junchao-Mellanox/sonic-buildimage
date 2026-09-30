@@ -439,5 +439,89 @@ class TestMlxfwmanagerDetail(unittest.TestCase):
         self.assertTrue(detail.endswith("x" * 100))
 
 
+
+
+class TestAlreadyStagedIsSuccess(unittest.TestCase):
+    """
+    mlxfwmanager returns rc=2 with 'The firmware image was already updated on
+    flash, pending reset.' when the image is staged and awaiting an ASIC
+    reset. That is a completed burn, not a failure.
+
+    Observed on a Chameleon6S: treating it as failure made mlnx-fw-manager
+    exit 1, and syncd.service has Requires=mlnx-fw-manager.service, so a
+    successful burn could stop syncd from starting.
+    """
+
+    ALREADY_STAGED = "-E- The firmware image was already updated on flash, pending reset."
+
+    def _manager(self):
+        with patch.object(SpectrumFirmwareManager, '_initialize_asic'):
+            manager = SpectrumFirmwareManager(
+                asic_index=0, pci_id='0000:02:00.0', asic_type='SPC6')
+        manager.logger = MagicMock()
+        manager.fw_file = '/etc/mlnx/fw-SPC6.mfa'
+        return manager
+
+    @staticmethod
+    def _result(returncode=0, stdout='', stderr=''):
+        result = MagicMock()
+        result.returncode = returncode
+        result.stdout = stdout
+        result.stderr = stderr
+        return result
+
+    def test_reactivation_always_attempted_on_rc2(self):
+        """
+        HLD 3.2 requires rc==2 to trigger 'flint ir' and exactly one retry. A
+        device that genuinely needs reactivation also reports rc=2, so short
+        circuiting to success would leave its firmware inactive while claiming
+        the burn completed.
+        """
+        manager = self._manager()
+        with patch.object(manager, '_run_command') as run:
+            run.side_effect = [
+                self._result(2, stderr=self.ALREADY_STAGED),
+                self._result(0),                               # flint ir
+                self._result(2, stderr=self.ALREADY_STAGED),
+            ]
+            self.assertTrue(manager.run_firmware_update())
+        self.assertEqual(run.call_count, 3)
+        self.assertIn('ir', run.call_args_list[1][0][0])
+
+    def test_already_staged_after_reactivation_is_success(self):
+        """The exact sequence seen on hardware during a restore burn."""
+        manager = self._manager()
+        with patch.object(manager, '_run_command') as run:
+            run.side_effect = [
+                self._result(2, stderr='-E- Component is not applicable'),
+                self._result(0),                                   # flint ir
+                self._result(2, stderr=self.ALREADY_STAGED),
+            ]
+            self.assertTrue(manager.run_firmware_update())
+
+    def test_genuine_rc2_failure_still_fails(self):
+        manager = self._manager()
+        with patch.object(manager, '_run_command') as run:
+            run.side_effect = [
+                self._result(2, stderr='-E- Component is not applicable'),
+                self._result(0),
+                self._result(2, stderr='-E- Component is not applicable'),
+            ]
+            self.assertFalse(manager.run_firmware_update())
+
+    def test_other_failures_still_fail(self):
+        manager = self._manager()
+        with patch.object(manager, '_run_command') as run:
+            run.return_value = self._result(1, stderr='-E- Flash write error')
+            self.assertFalse(manager.run_firmware_update())
+
+    def test_detector_matches_both_streams(self):
+        self.assertTrue(SpectrumFirmwareManager._is_already_staged(
+            self._result(2, stdout=self.ALREADY_STAGED)))
+        self.assertTrue(SpectrumFirmwareManager._is_already_staged(
+            self._result(2, stderr=self.ALREADY_STAGED)))
+        self.assertFalse(SpectrumFirmwareManager._is_already_staged(
+            self._result(2, stderr='-E- Component is not applicable')))
+
 if __name__ == '__main__':
     unittest.main()

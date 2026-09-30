@@ -25,6 +25,7 @@ including process management, error handling, and SONiC image integration.
 import os
 import logging
 import subprocess
+from contextlib import contextmanager
 from typing import List
 from multiprocessing import Queue
 
@@ -122,13 +123,66 @@ class FirmwareCoordinator:
             raise FirmwareManagerError(msg)
         return True
 
-    def _stop_mst(self) -> None:
-        """Stop the MST driver. Logs errors but does not raise."""
-        self.logger.info("Stopping MST service")
-        result = run_command(['/usr/bin/mst', 'stop'],
-                             logger=self.logger, capture_output=True, text=True)
-        if result.returncode != 0:
-            self.logger.warning(f"MST stop failed (rc={result.returncode}): {result.stderr}")
+    @contextmanager
+    def mst_session(self):
+        """
+        Run a block with the MST driver started.
+
+        The vModule firmware version reads address an mst device rather than a
+        PCI BDF, so every path that inspects firmware versions - not just the
+        burn - has to hold an MST session. Without this, 'mlnx-fw-manager
+        --status' would fail on a CPO platform and syncd.sh would refuse to
+        start syncd.
+
+        **The session is deliberately not stopped on exit.** 'mst stop' unloads
+        mst_pci/mst_pciconf unconditionally - measured on hardware, it succeeds
+        even while another process holds a /dev/mst device open, taking every
+        mst device away from it. Since syncd.sh runs 'mlnx-fw-manager --status'
+        on every syncd start (including a crash-restart, and once per namespace
+        in parallel on multi-ASIC), a stop here could pull the driver out from
+        under a concurrent firmware burn, or out from under a sibling
+        --status which would then fail and block syncd from starting.
+
+        Leaving the driver loaded is safe and self-limiting: 'mst start' is
+        idempotent, syncd restarts cleanly with the modules resident (verified
+        on hardware), and the syncd start path tears them down on its own when
+        it rebinds the PCI device - so nothing accumulates across a restart.
+
+        There is deliberately no counterpart that stops it: a helper sitting
+        here uncalled is an invitation to wire it into a 'finally' and undo
+        all of the above.
+        """
+        yield self._start_mst()
+
+    def needs_vmod_versions(self) -> bool:
+        """
+        Whether any ASIC carries a vModule firmware component.
+
+        Used to avoid starting MST on platforms that have no vModule -
+        SPC <= SPC5 and BlueField must keep behaving exactly as they do today,
+        including not paying for an MST start during a version check.
+        """
+        # Compared against True explicitly: a manager that has not opted in
+        # must read as "no vModule" even when its attribute is a placeholder.
+        return any(getattr(manager, 'vmod_supported', False) is True
+                   for manager in self.managers)
+
+    def load_vmod_versions(self) -> None:
+        """
+        Populate the vModule versions for every ASIC.
+
+        Must be called inside an mst_session(). The underlying available
+        version read is memoized per (MFA, PSID), so the fwpkg extract happens
+        once for the whole system rather than once per ASIC.
+        """
+        for manager in self.managers:
+            try:
+                manager._load_vmod_versions()
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to load vModule versions for ASIC "
+                    f"{manager.asic_index}: {e}"
+                )
 
     def upgrade_firmware(self) -> None:
         """
@@ -143,12 +197,10 @@ class FirmwareCoordinator:
             FirmwareUpgradeError: If all ASIC upgrades fail
             FirmwareUpgradePartialError: If some ASIC upgrades fail
         """
-        mst_started = self._start_mst()
-        try:
+        with self.mst_session():
+            if self.needs_vmod_versions():
+                self.load_vmod_versions()
             self._upgrade_firmware_impl()
-        finally:
-            if mst_started:
-                self._stop_mst()
 
     def _upgrade_firmware_impl(self) -> None:
         """Internal upgrade implementation, called after MST has been started."""
@@ -228,6 +280,16 @@ class FirmwareCoordinator:
         """
         self.logger.info(f"Checking if firmware upgrade is required from {self.fw_bin_path}")
 
+        if not self.needs_vmod_versions():
+            # No vModule on this platform: no MST session, no behaviour change.
+            return self._check_upgrade_required_impl()
+
+        with self.mst_session():
+            self.load_vmod_versions()
+            return self._check_upgrade_required_impl()
+
+    def _check_upgrade_required_impl(self) -> bool:
+        """Version comparison, assuming an MST session is already held."""
         upgrade_needed = False
         for manager in self.managers:
             try:
@@ -297,6 +359,33 @@ class FirmwareCoordinator:
                 raise FirmwareUpgradeError(error_msg)
 
             return fw_bin_path
+
+    def get_default_mfa_path(self) -> str:
+        """Path of the MFA shipped in the installed image (--burn default)."""
+        return os.path.join(self.fw_bin_path, f"fw-{self.asic_manager.get_asic_type()}.mfa")
+
+    def select_managers(self, asic: str = 'all') -> List:
+        """
+        The per-ASIC managers a manual burn should act on (--asic).
+
+        Returns every manager for 'all'. AF-12 is satisfied by construction:
+        the unit is the ASIC, and there is no port-level selector.
+
+        Raises:
+            FirmwareUpgradeError: If the selector names an ASIC that does not
+                exist - silently burning a different one would be worse.
+        """
+        if asic in (None, 'all', '__flag__'):
+            return list(self.managers)
+        try:
+            index = int(asic)
+        except (TypeError, ValueError):
+            raise FirmwareUpgradeError(f"Invalid ASIC selector: {asic}")
+        for manager in self.managers:
+            if manager.asic_index == index:
+                return [manager]
+        raise FirmwareUpgradeError(
+            f"ASIC {index} not found; this system has {len(self.managers)} ASIC(s)")
 
     def get_asic_count(self) -> int:
         """Get the number of ASICs in the system."""

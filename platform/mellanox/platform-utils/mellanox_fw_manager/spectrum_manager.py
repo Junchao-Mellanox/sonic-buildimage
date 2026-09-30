@@ -51,6 +51,24 @@ class SpectrumFirmwareManager(FirmwareManagerBase):
         re.IGNORECASE,
     )
 
+    # 'The firmware image was already updated on flash, pending reset.'
+    #
+    # mlxfwmanager returns rc=2 for this, but it is a success: the image is
+    # staged in flash and activates on the next ASIC reset. Observed on a
+    # Chameleon6S whenever the target image is burned while it is already
+    # staged - including the vModule component, whose own banks keep reporting
+    # the previous version until that reset propagates the new image.
+    _MLXFW_ALREADY_STAGED_RE = re.compile(
+        r'already\s+updated\s+on\s+flash|pending\s+reset', re.IGNORECASE)
+
+    # ASIC families that carry a vModule (Optical Engine) firmware component
+    # inside the same combined MFA as the ASIC firmware.
+    VMOD_CAPABLE_ASIC_TYPES = {'SPC6'}
+
+    def supports_vmod(self) -> bool:
+        """Whether this ASIC family carries a vModule firmware component."""
+        return self.asic_type in self.VMOD_CAPABLE_ASIC_TYPES
+
     @classmethod
     def get_asic_type_map(cls) -> Dict[str, str]:
         """
@@ -90,6 +108,18 @@ class SpectrumFirmwareManager(FirmwareManagerBase):
             return detail if len(detail) <= max_len else detail[:max_len].rstrip() + " ...[truncated]"
         return stdout if len(stdout) <= max_len else "...[truncated]" + stdout[-max_len:]
 
+    @classmethod
+    def _is_already_staged(cls, result: subprocess.CompletedProcess) -> bool:
+        """
+        Whether mlxfwmanager is reporting 'already updated on flash'.
+
+        That is a success, not a failure: the firmware is in flash and becomes
+        active at the next ASIC reset. Returning False here would turn a
+        completed burn into a unit failure at boot.
+        """
+        output = f"{result.stdout or ''}\n{result.stderr or ''}"
+        return bool(cls._MLXFW_ALREADY_STAGED_RE.search(output))
+
     def _get_available_firmware_version(self, psid: str) -> Optional[str]:
         """Get available firmware version for Spectrum ASICs using mlxfwmanager."""
         try:
@@ -121,6 +151,10 @@ class SpectrumFirmwareManager(FirmwareManagerBase):
             result = self._run_command(cmd, env=env, capture_output=True, text=True)
 
             if result.returncode == FW_ALREADY_UPDATED_FAILURE:
+                # The reactivation attempt is kept unconditionally: a device
+                # that genuinely needs its image reactivated also reports
+                # rc=2, and skipping straight to "success" would leave that
+                # firmware inactive while claiming the burn completed.
                 self.logger.info("FW reactivation is required. Reactivating and updating FW ...")
                 reactivate_cmd = ['flint', '-d', self.pci_id, 'ir']
                 reactivate_result = self._run_command(reactivate_cmd, capture_output=True, text=True)
@@ -128,6 +162,15 @@ class SpectrumFirmwareManager(FirmwareManagerBase):
                     self.logger.warning(f"FW reactivation failed with return code {reactivate_result.returncode}: {reactivate_result.stderr}")
 
                 result = self._run_command(cmd, env=env, capture_output=True, text=True)
+
+                # After reactivation the image may legitimately still be
+                # reported as already staged. Treating that as a failure made
+                # mlnx-fw-manager exit 1, and syncd.service has
+                # Requires=mlnx-fw-manager.service - so a successful,
+                # already-staged burn could stop syncd from starting.
+                if (result.returncode == FW_ALREADY_UPDATED_FAILURE
+                        and self._is_already_staged(result)):
+                    return True
 
             if result.returncode != 0:
                 self.logger.error(f"Failed to update firmware for Spectrum ASICs with return code {result.returncode}: {self._mlxfwmanager_detail(result)}")
